@@ -11,6 +11,7 @@ from scipy import stats
 #import statistics
 #import matplotlib.pyplot as plt
 from PHPHCSolver.Queue import Queue
+from PHPHCSolver.LocalStateSpace import LocalStateSpace
 
 
 
@@ -62,5 +63,10 @@ queue = Queue(gamma,T,t,alpha,S,s,servers)
 #   EVALUATE QUEUE
 #--------------------------------
 
-print(queue.meanInterArrivalTime())
-print(1/(0.9*servers))
+ls = LocalStateSpace(queue)
+
+ls.generateStateSpace(4)
+
+print(ls.stateSpace)
+print(ls.serviceJumpOne(ls.stateSpace[1],ls.stateSpace[2]))
+print(ls.noChange(ls.stateSpace[3],ls.stateSpace[3]))
