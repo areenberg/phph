@@ -103,25 +103,22 @@ class LocalStateSpace:
         #returns -1 if jump is infeasible.
         #s1 and s2 indicates the states (as lists) that are compared.
 
-        if s1[1]-s2[1]==0:
-            diff = s2[0]-s1[0]
-            nn=0
-            npos=0
-            npos_idx = -1
-            for i in range(len(diff)):
-                if diff[i]==0:
-                    nn+=1
-                elif diff[i]==1:
-                    npos+=1
-                    npos_idx = i
+        diff = s2[0]-s1[0]
+        nn=0
+        npos=0
+        npos_idx = -1
+        for i in range(len(diff)):
+            if diff[i]==0:
+                nn+=1
+            elif diff[i]==1:
+                npos+=1
+                npos_idx = i
 
-            if npos==1 and (nn+npos)==len(diff):
-                return(npos_idx)
-            else:
-                return(-1)
+        if npos==1 and (nn+npos)==len(diff):
+            return(npos_idx)
         else:
             return(-1)
-
+        
     def serviceReduceOne(self,s1,s2):
         #returns phase of the newly idle server.
         #returns -1 if jump is infeasible.
