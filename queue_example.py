@@ -11,6 +11,7 @@ import math
 from PHPHCSolver.Queue import Queue
 from PHPHCSolver.LocalStateSpace import LocalStateSpace
 from PHPHCSolver.SubMatrices import SubMatrices
+from PHPHCSolver.Solver import Solver
 
 
 
@@ -21,7 +22,7 @@ from PHPHCSolver.SubMatrices import SubMatrices
 #--------------------------------
 
 #server capacity
-servers = 4
+servers = 2
 
 #Service parameters
 
@@ -29,8 +30,8 @@ servers = 4
 alpha = np.matrix([[0.5,0.5]])
 
 #Exit rates
-s = np.matrix([[0.5*servers],
-               [0.3*servers]])
+s = np.matrix([[1.0*servers],
+               [1.0*servers]])
 
 #Phase-type generator
 S = np.matrix([[0.0,0.0],
@@ -62,25 +63,29 @@ queue = Queue(gamma,T,t,alpha,S,s,servers)
 #   EVALUATE QUEUE
 #--------------------------------
 
-subMats = SubMatrices(queue)
+sol = Solver(queue)
 
-fMat = subMats.createForwardInhomMatrix(3,4)
-bMat = subMats.createBackwardInhomMatrix(3,2)
-lMat = subMats.createLocalInhomMatrix(3,fMat,bMat)
+sol.solveBoundary()
 
-print(fMat)
-print(bMat)
-print(lMat)
+print(sol.boundaryProb)
+print(np.sum(sol.boundaryProb))
 
 
 #ls = LocalStateSpace(queue)
 #ls.generateStateSpace(servers)
+#subMats = SubMatrices(queue)
+
 #subMats.createForwardMatrix(ls)
 #subMats.createBackwardMatrix(ls)
 #subMats.createLocalMatrix(ls)
 
+#subMats.createNeutsMatrix(1e-9)
+#subMats.createCornerMatrix()
+
+#fMat = subMats.createForwardInhomMatrix(0,1)
+#bMat = subMats.createBackwardInhomMatrix(3,2)
+#lMat = subMats.createLocalInhomMatrix(3,fMat,bMat)
+
 #print(subMats.forwardMat)
 #print(subMats.backwardMat)
 #print(subMats.localMat)
-
-

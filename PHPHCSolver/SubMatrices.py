@@ -12,6 +12,40 @@ class SubMatrices:
         self.queue = queue
 
 
+    def createNeutsMatrix(self,eps):
+        #Derive Neut's R matrix (in continuous time) 
+        #using the logarithmic reduction algorithm
+        
+        #assumes the backward, local, and forward
+        #matrices have been derived
+        
+        #initialization
+        l = self.forwardMat.shape[0]
+        Iden = np.identity(l)
+        B0 = np.matmul(np.linalg.inv(-self.localMat),self.forwardMat)
+        B2 = np.matmul(np.linalg.inv(-self.localMat),self.backwardMat)
+        S = B2
+        Pi = B0
+        #run
+        tol = 1
+        while tol>eps:
+            localMatstar = Iden-np.matmul(B0,B2)-np.matmul(B2,B0)
+            forwardMatstar = np.linalg.matrix_power(B0,2)
+            backwardMatstar = np.linalg.matrix_power(B2,2)
+            B0 = np.matmul(np.linalg.inv(localMatstar),forwardMatstar)
+            B2 = np.matmul(np.linalg.inv(localMatstar),backwardMatstar)
+            S = np.add(S,np.matmul(Pi,B2))
+            Pi = np.matmul(Pi,B0)
+            #check convergence
+            xtol = np.absolute(np.subtract(np.ones((l,1)),S.sum(axis=1)))
+            tol = xtol.max()
+        #derive the fundamental matrices
+        Gmat = S
+        Umat = np.add(self.localMat,np.matmul(self.forwardMat,Gmat))
+        self.neutsMat = np.matmul(self.forwardMat,np.linalg.inv(-Umat))
+        
+
+
     def createFundamentalMatrices(self):
         #create the fundamental sub-matrix
         #associated with transitions in the 
@@ -177,3 +211,17 @@ class SubMatrices:
         for sidx in range(l):
             mat[sidx,sidx] = -sm[sidx]
         return(mat)
+
+
+    def createCornerMatrix(self):
+        #create the sub-matrix in the
+        #lower right corner of the inhomogenuous part
+        #of the major transition rate matrix.
+        #the corner matrix corresponds to the sub-matrix
+        #at the levels that is equal to the number of 
+        #servers.
+
+        #assumes the local, backward, and Neut's
+        #matrices have been derived.   
+
+        return(np.add(self.localMat,np.matmul(self.neutsMat,self.backwardMat)))
