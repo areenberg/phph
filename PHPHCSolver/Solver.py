@@ -23,20 +23,26 @@ class Solver:
         self.subMats.createLocalMatrix(self.ls)
         
 
-    def solveBoundary(self):
+    def solveBoundary(self,method="gauss"):
         
         boundaryMat = self.createBoundaryMatrix()
         
-        x = self.powerMethod(boundaryMat)
+        if method=="gauss":
+            #solve using gaussian elimination
+            x = self.gaussianElim(boundaryMat) 
+        elif method=="power":
+            #solve using the power method
+            x = self.powerMethod(boundaryMat)  
         x = np.transpose(x)
+        
         #normalize
         scaler = np.sum(x[0,0:x.shape[1]-self.subMats.localMat.shape[0]]) + np.sum(np.matmul(x[0,x.shape[1]-self.subMats.localMat.shape[0]:x.shape[1]],np.linalg.inv(np.subtract(np.identity(self.subMats.neutsMat.shape[1]),self.subMats.neutsMat))))
         self.boundaryProb = (1/scaler)*x            
         
-    
+        
     def createBoundaryMatrix(self):
         
-        self.subMats.createNeutsMatrix(self.eps)
+        self.subMats.createNeutsMatrix(self.eps,method="logred")
         
         templs = LocalStateSpace(self.queue)
         dim=0
@@ -75,31 +81,65 @@ class Solver:
             
 
     def powerMethod(self,Q):
-        #numerically derive the stationary
-        #distribution using the power method
+        #derive a numerical solution to the
+        #stationary distribution using the power method
         
+        #create the P matrix
         qdiag = np.diag(Q)
-
         offset = 1e-3
         deltat = 1 / (np.max(np.abs(qdiag)) + offset)
         P = Q * deltat + np.identity(Q.shape[0])
         Pt = np.transpose(P)
         
+        #initialize with random solution
         pi = np.random.rand(Q.shape[0],1)
         sm = np.sum(pi,axis=0)
         pi_new = pi / sm
             
-        m=20    
         diff = 1
-        while diff > self.eps:
+        while diff > self.eps:   
             pi_old = np.copy(pi_new)
-
-            for i in range(m):
-                pi_new = np.matmul(Pt,pi_old)
-                sm = np.sum(pi_new,axis=0)
-                pi_new = pi_new/sm
-
+            #update
+            pi_new = np.matmul(Pt,pi_old)
+            #normalize
+            sm = np.sum(pi_new,axis=0)
+            pi_new = pi_new/sm
             #evaluate convergence
             diff = np.max(np.abs(pi_new - pi_old) / pi_new)
             
-        return(pi_new)            
+        return(pi_new)
+
+
+    def gaussianElim(self,Q):
+        #derive the exact solution to the stationary
+        #distribution using Guassian elimination
+        
+        A = np.transpose(Q)
+        
+        #reduction
+        for i in range(A.shape[0]-1):
+            for j in range(i+1,A.shape[0]):
+                mult = -A[j,i]/A[i,i]
+                A[j,i] = 0
+                for k in range(i+1,A.shape[1]):    
+                    A[j,k] += mult*A[i,k]
+
+        #backsubstitution
+        pi = np.zeros((A.shape[0],1))
+        pi[-1,0] = 1
+        for i in range(A.shape[0]-2,-1,-1):
+            sm=0
+            for j in range(i+1,A.shape[0]):
+                sm+=A[i,j]*pi[j,0]
+            pi[i] = -sm/A[i,i]
+        
+        #normalization
+        sm = np.sum(pi,axis=0)
+        pi = pi/sm
+            
+        return(pi)
+    
+    
+    
+    
+    

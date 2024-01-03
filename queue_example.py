@@ -65,11 +65,8 @@ queue = Queue(gamma,T,t,alpha,S,s,servers)
 
 sol = Solver(queue)
 
-sol.solveBoundary()
-
+sol.solveBoundary(method="gauss")
 print(sol.boundaryProb)
-print(np.sum(sol.boundaryProb))
-
 
 #ls = LocalStateSpace(queue)
 #ls.generateStateSpace(servers)

@@ -12,13 +12,22 @@ class SubMatrices:
         self.queue = queue
 
 
-    def createNeutsMatrix(self,eps):
+    def createNeutsMatrix(self,eps,method="logred"):
         #Derive Neut's R matrix (in continuous time) 
-        #using the logarithmic reduction algorithm
         
         #assumes the backward, local, and forward
         #matrices have been derived
         
+        if method=="logred":
+            self.logRed(eps)
+        elif method=="stewart":
+            self.stewart(eps)
+        
+        
+    def logRed(self,eps):
+        #derive Neut's matrix using
+        #logarithmic reduction (original implementation in Matlab by B. F. Nielsen)
+
         #initialization
         l = self.forwardMat.shape[0]
         Iden = np.identity(l)
@@ -43,9 +52,23 @@ class SubMatrices:
         Gmat = S
         Umat = np.add(self.localMat,np.matmul(self.forwardMat,Gmat))
         self.neutsMat = np.matmul(self.forwardMat,np.linalg.inv(-Umat))
+    
+    def stewart(self,eps):
+        #derive Neut's matrix using the method in:
+        #W. J. Stewart (2009), "Probability, Markov Chains, Queues, and Simulation", Princeton University Press
         
+        V = np.matmul(self.forwardMat,np.linalg.inv(self.localMat))
+        W = np.matmul(self.backwardMat,np.linalg.inv(self.localMat))
 
-
+        l = self.forwardMat.shape[0]
+        self.neutsMat = np.zeros((l,l))
+        Rbis = np.subtract(-V,np.matmul(np.matmul(self.neutsMat,self.neutsMat),W))
+        
+        while np.linalg.norm(np.subtract(self.neutsMat,Rbis),1)>eps:
+            self.neutsMat = np.copy(Rbis)
+            Rbis = np.subtract(-V,np.matmul(np.matmul(self.neutsMat,self.neutsMat),W))
+        self.neutsMat = np.copy(Rbis)
+        
     def createFundamentalMatrices(self):
         #create the fundamental sub-matrix
         #associated with transitions in the 
