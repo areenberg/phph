@@ -15,6 +15,8 @@ class Solver:
         self.initialize()
         
     def initialize(self):
+        
+        #create matrices
         self.ls = LocalStateSpace(self.queue)
         self.ls.generateStateSpace(self.queue.servers)
         self.subMats = SubMatrices(self.queue)
@@ -22,6 +24,67 @@ class Solver:
         self.subMats.createBackwardMatrix(self.ls)
         self.subMats.createLocalMatrix(self.ls)
         
+        #solve the boundary probabilities
+        self.solveBoundary(method="gauss")
+
+    def meanQueueLength(self):
+        #returns the mean number of
+        #customers that are waiting
+        l = len(self.ls.stateSpace)
+        meanQueue = np.sum(np.matmul(self.localStateDist(self.queue.servers+1),np.linalg.matrix_power(np.subtract(np.identity(l),self.subMats.neutsMat),-2)))
+        return(meanQueue)
+    
+    def meanWaitingTime(self):
+        #returns the (actual) mean waiting time
+        meanWait = self.meanQueueLength()*self.queue.meanInterArrivalTime()
+        return(meanWait)
+
+    def meanOccupancy(self):
+        #returns the mean number
+        #of customers in the system
+        meanOcc = self.meanQueueLength()+(self.queue.meanInterServiceTime()/self.queue.meanInterArrivalTime())
+        return(meanOcc)
+
+    def meanResponse(self):
+        #returns the mean response time
+        resp = self.meanOccupancy()*self.queue.meanInterArrivalTime()
+        return(resp)
+    
+    def probWait(self):
+        #returns the (virtual) probability of waiting
+        l = len(self.ls.stateSpace)
+        return(1-np.sum(self.boundaryProb[0,0:(self.boundaryProb.shape[1]-l)]))
+    
+    def probK(self,k):
+        #returns the probability of
+        #exactly k customers in the system
+        return(np.sum(self.localStateDist(k)))
+    
+    def localStateDist(self,k):
+        #returns the local state distribution
+        #of level k
+        
+        if k>=self.queue.servers:
+            l = len(self.ls.stateSpace)
+            xc = self.boundaryProb[0,(self.boundaryProb.shape[1]-l):self.boundaryProb.shape[1]]
+            xk = np.matmul(xc,np.linalg.matrix_power(self.subMats.neutsMat,(k-self.queue.servers)))               
+        elif k>0:
+            ls = LocalStateSpace(self.queue)
+            a = 0
+            for i in range(k+1):
+                ls.generateStateSpace(i)
+                a += len(ls.stateSpace)
+            ls.generateStateSpace(k) 
+            b = len(ls.stateSpace)
+            xk = self.boundaryProb[0,(a-b):a]
+        elif k==0:
+            ls = LocalStateSpace(self.queue)
+            ls.generateStateSpace(0)
+            l = len(ls.stateSpace)
+            xk = self.boundaryProb[0,0:l]
+        else:    
+            print("Error: Level i cannot be a negative number.")
+        return(xk)
 
     def solveBoundary(self,method="gauss"):
         

@@ -37,5 +37,5 @@ class Queue:
     def meanInterServiceTime(self):
         #calculate and return the mean
         #inter-service time
-        y = -np.matmul(self.serviceInitDistribution,numpy.linalg.inv(self.serviceGenerator)).sum()
+        y = -np.matmul(self.serviceInitDistribution,np.linalg.inv(self.serviceGenerator)).sum()
         return(y)

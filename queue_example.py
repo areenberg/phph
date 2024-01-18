@@ -22,40 +22,38 @@ from PHPHCSolver.Solver import Solver
 #--------------------------------
 
 #server capacity
-servers = 2
+servers = 15
 
 #Service parameters
 
 #Initial distribution
-alpha = np.matrix([[0.5,0.5]])
+alpha = np.matrix([[(24+math.sqrt(468))/54,
+                    1-((24+math.sqrt(468))/54)]])
 
 #Exit rates
-s = np.matrix([[1.0*servers],
-               [1.0*servers]])
+s = np.transpose(np.matrix([[3*alpha[0, 0],
+                             1.5*alpha[0, 1]]]))
 
 #Phase-type generator
-S = np.matrix([[0.0,0.0],
-               [10.0,0.0]])
-S[0,0] = -(s[0]+S[0,1])
-S[1,1] = -(s[1]+S[1,0])
+S = np.matrix([[-s[0,0],0.0],
+               [0.0,-s[1,0]]])
 
 
 #Arrival parameters
 
 #Initial distribution
-gamma = np.matrix([[0.8,0.2]])
+gamma = np.matrix([[1.0,0.0]])
+#gamma = np.matrix([[1.0]])
 
 #Exit rates
-t = np.matrix([[0.9*servers],
-               [0.5*servers]])
-
+t = np.transpose(np.matrix([[0.0,
+                             0.9*servers*2]]))
+#t = np.matrix([[0.9*servers]])
 
 #Phase-type generator
-T = np.matrix([[0.0,0.1],
-               [0.2,0.0]])
-T[0,0] = -(t[0]+T[0,1])
-T[1,1] = -(t[1]+T[1,0])
-
+T = np.matrix([[-0.9*servers*2,0.9*servers*2],
+               [0.0,-0.9*servers*2]])
+#T = np.matrix([[-0.9*servers]])
 
 queue = Queue(gamma,T,t,alpha,S,s,servers)
 
@@ -65,24 +63,6 @@ queue = Queue(gamma,T,t,alpha,S,s,servers)
 
 sol = Solver(queue)
 
-sol.solveBoundary(method="gauss")
-print(sol.boundaryProb)
-
-#ls = LocalStateSpace(queue)
-#ls.generateStateSpace(servers)
-#subMats = SubMatrices(queue)
-
-#subMats.createForwardMatrix(ls)
-#subMats.createBackwardMatrix(ls)
-#subMats.createLocalMatrix(ls)
-
-#subMats.createNeutsMatrix(1e-9)
-#subMats.createCornerMatrix()
-
-#fMat = subMats.createForwardInhomMatrix(0,1)
-#bMat = subMats.createBackwardInhomMatrix(3,2)
-#lMat = subMats.createLocalInhomMatrix(3,fMat,bMat)
-
-#print(subMats.forwardMat)
-#print(subMats.backwardMat)
-#print(subMats.localMat)
+print(sol.meanWaitingTime())
+print(sol.meanOccupancy())
+print(sol.meanQueueLength())
