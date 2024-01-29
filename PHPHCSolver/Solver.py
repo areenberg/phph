@@ -25,7 +25,7 @@ class Solver:
         self.subMats.createLocalMatrix(self.ls)
         
         #solve the boundary probabilities
-        self.solveBoundary(method="gauss")
+        self.__solveBoundary(method="gauss")
 
     def meanQueueLength(self):
         #returns the mean number of
@@ -35,7 +35,8 @@ class Solver:
         return(meanQueue)
     
     def meanWaitingTime(self):
-        #returns the (actual) mean waiting time
+        #returns the mean waiting time
+        #as observed by the customers
         meanWait = self.meanQueueLength()*self.queue.meanInterArrivalTime()
         return(meanWait)
 
@@ -50,16 +51,85 @@ class Solver:
         resp = self.meanOccupancy()*self.queue.meanInterArrivalTime()
         return(resp)
     
-    def probWait(self):
-        #returns the (virtual) probability of waiting
-        l = len(self.ls.stateSpace)
-        return(1-np.sum(self.boundaryProb[0,0:(self.boundaryProb.shape[1]-l)]))
+    def probWait(self,type="actual"):
+        #returns the probability of waiting
+        if type=="actual": #observed by the customers
+            p=0
+            for k in range(self.queue.servers):
+                p+=self.__probKArrivals(k)
+            pw=p.item()    
+            return(1-pw)
+        elif type=="virtual": #observed by Poisson arrivals
+            l = len(self.ls.stateSpace)
+            return(1-np.sum(self.boundaryProb[0,0:(self.boundaryProb.shape[1]-l)]))
     
-    def probK(self,k):
-        #returns the probability of
-        #exactly k customers in the system
-        return(np.sum(self.localStateDist(k)))
-    
+    def probK(self,k,type="actual"):
+        #returns the probability of k customers
+        #in the system
+        if type=="actual": #observed by the customers
+            return(self.__probKArrivals(k))
+        elif type=="virtual": #observed by Poisson arrivals
+            return(np.sum(self.localStateDist(k)))
+        
+    def __probKArrivals(self,k):
+        #returns the probability that an
+        #*arriving customer* observes
+        #k customers in the system
+        pr=0
+        for i in range(self.queue.nPhasesArrival()):
+            pr+=self.__probKPhase(k,i)*self.__probExitPhase(i)
+        return(pr)
+
+    def __probKPhase(self,k,i):
+        #returns the conditional probability that
+        #the process is in level k when the process
+        #is also in phase i of the arrival process  
+        s = self.localState(k)
+        ids = [m for m, sublist in enumerate(s) if sublist[1]==i]
+        lk = np.zeros((len(s),1))
+        for idx in ids:
+            lk[idx] = 1
+        numer = np.matmul(self.localStateDist(k),lk)
+        return (numer/self.__probPhase(i))
+
+    def __probPhase(self,i):
+        #returns the (unconditional) probability that
+        #the arrival process is in phase i  
+        
+        #calculate inhomogeneous part of state space
+        beta=0
+        for j in range(self.queue.servers):
+            s = self.localState(j)
+            ids = [m for m, sublist in enumerate(s) if sublist[1]==i]
+            lk = np.zeros((len(s),1))
+            for idx in ids:
+                lk[idx] = 1
+            beta += np.matmul(self.localStateDist(j),lk)
+
+        #add to the inhomogeneous part
+        s = self.localState(self.queue.servers)
+        ids = [m for m, sublist in enumerate(s) if sublist[1]==i]
+        lk = np.zeros((len(s),1))
+        for idx in ids:
+            lk[idx] = 1    
+        pk = beta+np.matmul(np.matmul(self.localStateDist(self.queue.servers),np.linalg.inv(np.subtract(np.identity(self.subMats.neutsMat.shape[1]),self.subMats.neutsMat))),lk)
+        return(pk)        
+
+    def __probPhaseExit(self,i):
+        #returns the conditional probability
+        #of exiting given that the arrival
+        #process is currently in phase i
+        return self.queue.arrivalExitRates[i,0]/-self.queue.arrivalGenerator[i,i]
+
+    def __probExitPhase(self,i):
+        #given that an arrival exits, returns
+        #the probability that the arrival came from
+        #phase i
+        d=0
+        for j in range(self.queue.nPhasesArrival()):
+            d += self.__probPhaseExit(j)*self.__probPhase(j)
+        return((self.__probPhaseExit(i)*self.__probPhase(i))/d)
+
     def localStateDist(self,k):
         #returns the local state distribution
         #of level k
@@ -86,16 +156,24 @@ class Solver:
             print("Error: Level i cannot be a negative number.")
         return(xk)
 
-    def solveBoundary(self,method="gauss"):
+    def localState(self,k):
+        #returns the definition of the
+        #local state space of level k
         
-        boundaryMat = self.createBoundaryMatrix()
+        ls = LocalStateSpace(self.queue)
+        ls.generateStateSpace(k)
+        return(ls.stateSpace)
+
+    def __solveBoundary(self,method="gauss"):
+        
+        boundaryMat = self.__createBoundaryMatrix()
         
         if method=="gauss":
             #solve using gaussian elimination
-            x = self.gaussianElim(boundaryMat) 
+            x = self.__gaussianElim(boundaryMat) 
         elif method=="power":
             #solve using the power method
-            x = self.powerMethod(boundaryMat)  
+            x = self.__powerMethod(boundaryMat)  
         x = np.transpose(x)
         
         #normalize
@@ -103,7 +181,7 @@ class Solver:
         self.boundaryProb = (1/scaler)*x            
         
         
-    def createBoundaryMatrix(self):
+    def __createBoundaryMatrix(self):
         
         self.subMats.createNeutsMatrix(self.eps,method="logred")
         
@@ -143,7 +221,7 @@ class Solver:
         return(boundMat)            
             
 
-    def powerMethod(self,Q):
+    def __powerMethod(self,Q):
         #derive a numerical solution to the
         #stationary distribution using the power method
         
@@ -173,7 +251,7 @@ class Solver:
         return(pi_new)
 
 
-    def gaussianElim(self,Q):
+    def __gaussianElim(self,Q):
         #derive the exact solution to the stationary
         #distribution using Guassian elimination
         

@@ -63,6 +63,9 @@ queue = Queue(gamma,T,t,alpha,S,s,servers)
 
 sol = Solver(queue)
 
+print(1-sol.probWait())
 print(sol.meanWaitingTime())
-print(sol.meanOccupancy())
-print(sol.meanQueueLength())
+
+#print(sol.meanWaitingTime())
+#print(sol.meanOccupancy())
+#print(sol.meanQueueLength())
