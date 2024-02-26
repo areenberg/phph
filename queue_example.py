@@ -6,15 +6,13 @@
 
 import numpy as np
 import math
-
-#import matplotlib.pyplot as plt
+import time #for runtime measurements
 from PHPHCSolver.Queue import Queue
-from PHPHCSolver.LocalStateSpace import LocalStateSpace
-from PHPHCSolver.SubMatrices import SubMatrices
 from PHPHCSolver.Solver import Solver
-
-
-
+from PHPHCSolver.SubMatrices import SubMatrices
+from PHPHCSolver.LocalStateSpace import LocalStateSpace
+from PHPHCSolver.Uniformization import Uniformization
+from PHPHCSolver.BlockUniformization import BlockUniformization
 
 
 #--------------------------------
@@ -61,11 +59,17 @@ queue = Queue(gamma,T,t,alpha,S,s,servers)
 #   EVALUATE QUEUE
 #--------------------------------
 
+#start_time = time.perf_counter()
 sol = Solver(queue)
+#print(time.perf_counter()-start_time)
 
-print(1-sol.probWait())
-print(sol.meanWaitingTime())
+#start_time = time.perf_counter()
+#print(sol.probWait())
+#print(time.perf_counter()-start_time)
+
+
+print(sol.waitDist(3.0753,type="actual"))
+print(sol.waitDist(3.0937,type="virtual"))
+
 
 #print(sol.meanWaitingTime())
-#print(sol.meanOccupancy())
-#print(sol.meanQueueLength())

@@ -3,6 +3,7 @@ import numpy as np
 from PHPHCSolver.Queue import Queue
 from PHPHCSolver.LocalStateSpace import LocalStateSpace
 from PHPHCSolver.SubMatrices import SubMatrices
+from PHPHCSolver.BlockUniformization import BlockUniformization
 
 
 class Solver:
@@ -23,9 +24,11 @@ class Solver:
         self.subMats.createForwardMatrix(self.ls)
         self.subMats.createBackwardMatrix(self.ls)
         self.subMats.createLocalMatrix(self.ls)
-        
         #solve the boundary probabilities
         self.__solveBoundary(method="gauss")
+        #precalculations
+        self.__storeAllExitPhase()
+        self.__storeAllProbPhasei()
 
     def meanQueueLength(self):
         #returns the mean number of
@@ -62,9 +65,17 @@ class Solver:
         elif type=="virtual": #observed by Poisson arrivals
             l = len(self.ls.stateSpace)
             return(1-np.sum(self.boundaryProb[0,0:(self.boundaryProb.shape[1]-l)]))
-    
+        
+    def waitDist(self,t,type="actual"):    
+        #returns the probability of waiting
+        #longer than t units of time
+        if type=="actual":
+            return self.__actualWaitDist(t)
+        elif type=="virtual":
+            return self.__virtualWaitDist(t)
+            
     def probK(self,k,type="actual"):
-        #returns the probability of k customers
+        #returns the probability of observing k customers
         #in the system
         if type=="actual": #observed by the customers
             return(self.__probKArrivals(k))
@@ -77,7 +88,16 @@ class Solver:
         #k customers in the system
         pr=0
         for i in range(self.queue.nPhasesArrival()):
-            pr+=self.__probKPhase(k,i)*self.__probExitPhase(i)
+            pr+=self.__probKPhase(k,i)*self.allExitPhase[0,i]
+        return(pr)
+
+    def __probServiceStateArrivals(self,k,j):
+        #returns the probability that an
+        #*arriving customer* observes
+        #level k and local 'service-state' j
+        pr=0
+        for i in range(self.queue.nPhasesArrival()):
+            pr+=self.__probServiceStatePhase(k,i,j)*self.allExitPhase[0,i]
         return(pr)
 
     def __probKPhase(self,k,i):
@@ -91,6 +111,40 @@ class Solver:
             lk[idx] = 1
         numer = np.matmul(self.localStateDist(k),lk)
         return (numer/self.__probPhase(i))
+
+    def __probServiceStatePhase(self,k,i,j):
+        #returns the conditional probability that
+        #the process is in level k and service in
+        #local 'service-state' j when the process
+        #is also in phase i of the arrival process  
+        s = self.localState(k)
+        ids = [m for m, sublist in enumerate(s) if sublist[1]==i]
+        ids_j = ids[j] 
+        lk = np.zeros((len(s),1))
+        lk[ids_j] = 1
+        numer = np.matmul(self.localStateDist(k),lk)
+        return (numer/self.allProbPhasei[0,i])
+
+    def __vectorProbServiceStatePhase(self,i,nSerStates,state,locStateDist):
+        #returns a vector of conditional probabilities
+        #for each local 'service-state' evaluating if the
+        #process is in level k when the process is also in
+        #phase i of the arrival process
+        prvec = np.zeros((1,nSerStates))
+        ids = [m for m, sublist in enumerate(state) if sublist[1]==i]
+        for j in range(nSerStates):
+            lk = np.zeros((len(state),1))
+            lk[ids[j],0] = 1
+            numer = np.matmul(locStateDist,lk)
+            prvec[0,j] = numer/self.allProbPhasei[0,i]
+        return (prvec)
+
+    def __nServiceStates(self,k):
+        #returns the number of 'service-states'
+        #on level k
+        s = self.localState(k)
+        ids = [m for m, sublist in enumerate(s) if sublist[1]==0]        
+        return len(ids)
 
     def __probPhase(self,i):
         #returns the (unconditional) probability that
@@ -130,6 +184,16 @@ class Solver:
             d += self.__probPhaseExit(j)*self.__probPhase(j)
         return((self.__probPhaseExit(i)*self.__probPhase(i))/d)
 
+    def __storeAllExitPhase(self):
+        self.allExitPhase = np.zeros((1,self.queue.nPhasesArrival()))
+        for i in range(self.queue.nPhasesArrival()):
+            self.allExitPhase[0,i] = self.__probExitPhase(i)
+    
+    def __storeAllProbPhasei(self):
+        self.allProbPhasei = np.zeros((1,self.queue.nPhasesArrival()))
+        for i in range(self.queue.nPhasesArrival()):
+            self.allProbPhasei[0,i] = self.__probPhase(i)
+        
     def localStateDist(self,k):
         #returns the local state distribution
         #of level k
@@ -281,6 +345,115 @@ class Solver:
         return(pi)
     
     
+    def __actualWaitDist(self,t):
+        
+        #fundamental parameters
+        l = len(self.ls.stateSpace)
+        state = self.localState(self.queue.servers)
+        xc = self.boundaryProb[0,(self.boundaryProb.shape[1]-l):self.boundaryProb.shape[1]]
+        pw = self.probWait(type="actual")
+
+        #construct QBD observed by arriving customers that have to wait
+        gamma_s = np.matrix([[1.0]])
+        t_s = np.matrix([[1]])
+        T_s = np.matrix([[-1]])
+        queue_s = Queue(gamma_s,T_s,t_s,self.queue.serviceInitDistribution,
+                        self.queue.serviceGenerator,self.queue.serviceExitRates,self.queue.servers)
+        subMats_s = SubMatrices(queue_s)
+        ls = LocalStateSpace(queue_s)
+        ls.generateStateSpace(queue_s.servers)        
+        subMats_s.createForwardMatrix(ls)
+        subMats_s.createBackwardMatrix(ls)
+        subMats_s.createLocalMatrix(ls)
+        lMat = subMats_s.localMat+np.diag(np.sum(subMats_s.forwardMat, axis=1))
+        bMat = subMats_s.backwardMat
+        nSerStates = lMat.shape[0]
+
+        #compute initial distribution
+        cm=0
+        ct = self.queue.servers-1
+        while (pw-cm)>self.eps:
+            ct += 1
+            locStateDist = np.matmul(xc,np.linalg.matrix_power(self.subMats.neutsMat,(ct-self.queue.servers)))
+            
+            pr=np.zeros((1,nSerStates))
+            for i in range(self.queue.nPhasesArrival()):
+                prvec = self.__vectorProbServiceStatePhase(i,nSerStates,state,locStateDist)
+                for j in range(nSerStates):
+                    pr[0,j]+=prvec[0,j]*self.allExitPhase[0,i]    
+            cm+=np.sum(pr)
+        
+        y=np.zeros((1,(ct-self.queue.servers+1)*nSerStates))
+        z=0
+        for k in range(self.queue.servers,ct+1):
+            locStateDist = np.matmul(xc,np.linalg.matrix_power(self.subMats.neutsMat,(k-self.queue.servers)))    
+            pr=np.zeros((1,nSerStates))
+            for i in range(self.queue.nPhasesArrival()):
+                prvec = self.__vectorProbServiceStatePhase(i,nSerStates,state,locStateDist)
+                for j in range(nSerStates):
+                    pr[0,j]+=prvec[0,j]*self.allExitPhase[0,i]    
+            y[0,z:z+nSerStates] = pr
+            z+=nSerStates
+        
+        #employ uniformization
+        uni = BlockUniformization(bMat,lMat)
+        return uni.run(y,t)
     
     
-    
+    def __virtualWaitDist(self,t):
+        
+        #fundamental parameters
+        l = len(self.ls.stateSpace)
+        state = self.localState(self.queue.servers)
+        xc = self.boundaryProb[0,(self.boundaryProb.shape[1]-l):self.boundaryProb.shape[1]]
+        pw = self.probWait(type="virtual")
+
+        #construct QBD observed by arriving customers that have to wait
+        gamma_s = np.matrix([[1.0]])
+        t_s = np.matrix([[1]])
+        T_s = np.matrix([[-1]])
+        queue_s = Queue(gamma_s,T_s,t_s,self.queue.serviceInitDistribution,
+                        self.queue.serviceGenerator,self.queue.serviceExitRates,self.queue.servers)
+        subMats_s = SubMatrices(queue_s)
+        ls = LocalStateSpace(queue_s)
+        ls.generateStateSpace(queue_s.servers)        
+        subMats_s.createForwardMatrix(ls)
+        subMats_s.createBackwardMatrix(ls)
+        subMats_s.createLocalMatrix(ls)
+        lMat = subMats_s.localMat+np.diag(np.sum(subMats_s.forwardMat, axis=1))
+        bMat = subMats_s.backwardMat
+        nSerStates = lMat.shape[0]
+
+        #compute initial distribution
+        cm=0
+        ct = self.queue.servers-1
+        while (pw-cm)>self.eps:
+            ct += 1
+            locStateDist = np.matmul(xc,np.linalg.matrix_power(self.subMats.neutsMat,(ct-self.queue.servers)))
+            
+            pr=np.zeros((1,nSerStates))
+            for i in range(self.queue.nPhasesArrival()):
+                ids = [m for m, sublist in enumerate(state) if sublist[1]==i]
+                for j in range(nSerStates):
+                    lk = np.zeros((len(state),1))
+                    lk[ids[j],0] = 1
+                    pr[0,j]+=np.matmul(locStateDist,lk)    
+            cm+=np.sum(pr)
+        
+        y=np.zeros((1,(ct-self.queue.servers+1)*nSerStates))
+        z=0
+        for k in range(self.queue.servers,ct+1):
+            locStateDist = np.matmul(xc,np.linalg.matrix_power(self.subMats.neutsMat,(k-self.queue.servers)))    
+            pr=np.zeros((1,nSerStates))
+            for i in range(self.queue.nPhasesArrival()):
+                ids = [m for m, sublist in enumerate(state) if sublist[1]==i]
+                for j in range(nSerStates):
+                    lk = np.zeros((len(state),1))
+                    lk[ids[j],0] = 1
+                    pr[0,j]+=np.matmul(locStateDist,lk)
+            y[0,z:z+nSerStates] = pr
+            z+=nSerStates
+        
+        #employ uniformization
+        uni = BlockUniformization(bMat,lMat)
+        return uni.run(y,t)    
