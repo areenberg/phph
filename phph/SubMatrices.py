@@ -1,7 +1,7 @@
 import math
 import numpy as np
-from PHPHCSolver.Queue import Queue
-from PHPHCSolver.LocalStateSpace import LocalStateSpace
+from phph.Queue import Queue
+from phph.LocalStateSpace import LocalStateSpace
 
 
 class SubMatrices:

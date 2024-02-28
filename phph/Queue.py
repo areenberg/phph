@@ -3,18 +3,18 @@ import numpy as np
 class Queue:
     #The fundamental characteristics of the queue
 
-    def __init__(self,arrivalInitDistribution,arrivalGenerator,arrivalExitRates,
-    serviceInitDistribution,serviceGenerator,serviceExitRates,
+    def __init__(self,arrivalInitDistribution,arrivalGenerator,
+    serviceInitDistribution,serviceGenerator,
     servers):
 
         #Parameters for the arrival process
         self.arrivalInitDistribution = arrivalInitDistribution
         self.arrivalGenerator = arrivalGenerator
-        self.arrivalExitRates = arrivalExitRates
+        self.arrivalExitRates = -np.sum(arrivalGenerator,axis=1)
         #Parameters for the service process
         self.serviceInitDistribution = serviceInitDistribution
         self.serviceGenerator = serviceGenerator
-        self.serviceExitRates = serviceExitRates
+        self.serviceExitRates = -np.sum(serviceGenerator,axis=1)
         #number of servers
         self.servers = servers
 

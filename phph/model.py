@@ -1,17 +1,22 @@
 import math
 import numpy as np
-from PHPHCSolver.Queue import Queue
-from PHPHCSolver.LocalStateSpace import LocalStateSpace
-from PHPHCSolver.SubMatrices import SubMatrices
-from PHPHCSolver.BlockUniformization import BlockUniformization
+from phph.Queue import Queue
+from phph.LocalStateSpace import LocalStateSpace
+from phph.SubMatrices import SubMatrices
+from phph.BlockUniformization import BlockUniformization
 
 
-class Solver:
+class model:
     #evaluate the state distribution of the QBD and various
     #performance metrics of the queue 
 
-    def __init__(self,queue,eps=1e-9):
-        self.queue = queue
+    def __init__(self,arrivalInitDistribution,arrivalGenerator,
+    serviceInitDistribution,serviceGenerator,
+    servers,eps=1e-9):
+        
+        self.queue = Queue(arrivalInitDistribution,arrivalGenerator,
+                           serviceInitDistribution,serviceGenerator,
+                           servers)
         self.eps=eps
         self.initialize()
         
@@ -355,10 +360,9 @@ class Solver:
 
         #construct QBD observed by arriving customers that have to wait
         gamma_s = np.matrix([[1.0]])
-        t_s = np.matrix([[1]])
         T_s = np.matrix([[-1]])
-        queue_s = Queue(gamma_s,T_s,t_s,self.queue.serviceInitDistribution,
-                        self.queue.serviceGenerator,self.queue.serviceExitRates,self.queue.servers)
+        queue_s = Queue(gamma_s,T_s,self.queue.serviceInitDistribution,
+                        self.queue.serviceGenerator,self.queue.servers)
         subMats_s = SubMatrices(queue_s)
         ls = LocalStateSpace(queue_s)
         ls.generateStateSpace(queue_s.servers)        
@@ -410,10 +414,9 @@ class Solver:
 
         #construct QBD observed by arriving customers that have to wait
         gamma_s = np.matrix([[1.0]])
-        t_s = np.matrix([[1]])
         T_s = np.matrix([[-1]])
-        queue_s = Queue(gamma_s,T_s,t_s,self.queue.serviceInitDistribution,
-                        self.queue.serviceGenerator,self.queue.serviceExitRates,self.queue.servers)
+        queue_s = Queue(gamma_s,T_s,self.queue.serviceInitDistribution,
+                        self.queue.serviceGenerator,self.queue.servers)
         subMats_s = SubMatrices(queue_s)
         ls = LocalStateSpace(queue_s)
         ls.generateStateSpace(queue_s.servers)        
