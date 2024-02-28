@@ -1,8 +1,5 @@
-import math
 import numpy as np
-from phph.Queue import Queue
 from phph.LocalStateSpace import LocalStateSpace
-
 
 class SubMatrices:
     #derive sub-matrices related to the inhomogenuous and homogenuous
