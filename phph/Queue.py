@@ -1,3 +1,4 @@
+import math
 import numpy as np
 
 class Queue:
@@ -34,8 +35,20 @@ class Queue:
         y = -np.matmul(self.arrivalInitDistribution,np.linalg.inv(self.arrivalGenerator)).sum()
         return(y)
 
+    def varianceInterArrivalTime(self):
+        #calculate and return the variance
+        #inter-arrival time
+        y = 2*(np.matmul(self.arrivalInitDistribution,np.linalg.matrix_power(self.arrivalGenerator,-2)).sum()) - math.pow(np.matmul(self.arrivalInitDistribution,np.linalg.inv(self.arrivalGenerator)).sum(),2)
+        return(y)
+
     def meanInterServiceTime(self):
         #calculate and return the mean
         #inter-service time
         y = -np.matmul(self.serviceInitDistribution,np.linalg.inv(self.serviceGenerator)).sum()
+        return(y)
+
+    def varianceInterServiceTime(self):
+        #calculate and return the variance
+        #inter-service time
+        y = 2*(np.matmul(self.serviceInitDistribution,np.linalg.matrix_power(self.serviceGenerator,-2)).sum()) - math.pow(np.matmul(self.serviceInitDistribution,np.linalg.inv(self.serviceGenerator)).sum(),2)
         return(y)

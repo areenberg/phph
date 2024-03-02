@@ -34,7 +34,7 @@ class model:
         #precalculations
         self.__storeAllExitPhase()
         self.__storeAllProbPhasei()
-
+        
     def meanQueueLength(self):
         #returns the mean number of
         #customers that are waiting
@@ -180,25 +180,33 @@ class model:
         #process is currently in phase i
         return self.queue.arrivalExitRates[i,0]/-self.queue.arrivalGenerator[i,i]
 
-    def __probExitPhase(self,i):
-        #given that an arrival exits, returns
-        #the probability that the arrival came from
-        #phase i
-        d=0
-        for j in range(self.queue.nPhasesArrival()):
-            d += self.__probPhaseExit(j)*self.__probPhase(j)
-        return((self.__probPhaseExit(i)*self.__probPhase(i))/d)
-
     def __storeAllExitPhase(self):
-        self.allExitPhase = np.zeros((1,self.queue.nPhasesArrival()))
-        for i in range(self.queue.nPhasesArrival()):
-            self.allExitPhase[0,i] = self.__probExitPhase(i)
+        #returns the distribution (as a column vector) 
+        #of phases that the arrival exits from.
+        #Thus, each element in the distribution reflects
+        #the conditional probability that an arrival
+        #exited through phase i.  
+        
+        #create the embedded Markov chain of the PH generator
+        diag= abs(np.diag(self.queue.arrivalGenerator))
+        pmat = self.queue.arrivalGenerator / diag[:, np.newaxis]
+        pmat = pmat + np.identity(self.queue.nPhasesArrival())
+        #create a diagonal matrix of exit probabilities 
+        evec = 1-np.sum(pmat,axis=1)
+        pmat2 = np.zeros((self.queue.nPhasesArrival(),self.queue.nPhasesArrival()))
+        np.fill_diagonal(pmat2,evec)
+        
+        #evaluate (y,allExitPhase) = (y,allExitPhase)*[P,Pdiag] until initial distribution (y) is zero
+        y = np.copy(self.queue.arrivalInitDistribution)
+        while (np.sum(y)>self.eps):
+            self.allExitPhase = np.matmul(y,pmat2)
+            y = np.matmul(y,pmat)
     
-    def __storeAllProbPhasei(self):
+    def __storeAllProbPhasei(self):        
         self.allProbPhasei = np.zeros((1,self.queue.nPhasesArrival()))
         for i in range(self.queue.nPhasesArrival()):
             self.allProbPhasei[0,i] = self.__probPhase(i)
-        
+
     def localStateDist(self,k):
         #returns the local state distribution
         #of level k
