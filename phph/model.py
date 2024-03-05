@@ -70,6 +70,16 @@ class model:
         elif type=="virtual": #observed by Poisson arrivals
             l = len(self.ls.stateSpace)
             return(1-np.sum(self.boundaryProb[0,0:(self.boundaryProb.shape[1]-l)]))
+    
+    def probEmpty(self,type="actual"):
+        #returns the probability that the
+        #system is empty
+        if type=="actual": #observed by the customers
+            p=self.__probKArrivals(0)
+            return(p.item())
+        elif type=="virtual": #observed by Poisson arrivals
+            s = self.localState(0)
+            return(np.sum(self.boundaryProb[0,0:len(s)]))
         
     def waitDist(self,t,type="actual"):    
         #returns the probability of waiting
@@ -198,10 +208,11 @@ class model:
         
         #evaluate (y,allExitPhase) = (y,allExitPhase)*[P,Pdiag] until initial distribution (y) is zero
         y = np.copy(self.queue.arrivalInitDistribution)
+        self.allExitPhase = np.zeros((1,y.shape[1]))
         while (np.sum(y)>self.eps):
-            self.allExitPhase = np.matmul(y,pmat2)
+            self.allExitPhase += np.matmul(y,pmat2)
             y = np.matmul(y,pmat)
-    
+        
     def __storeAllProbPhasei(self):        
         self.allProbPhasei = np.zeros((1,self.queue.nPhasesArrival()))
         for i in range(self.queue.nPhasesArrival()):
@@ -392,7 +403,7 @@ class model:
             for i in range(self.queue.nPhasesArrival()):
                 prvec = self.__vectorProbServiceStatePhase(i,nSerStates,state,locStateDist)
                 for j in range(nSerStates):
-                    pr[0,j]+=prvec[0,j]*self.allExitPhase[0,i]    
+                    pr[0,j]+=prvec[0,j]*self.allExitPhase[0,i]            
             cm+=np.sum(pr)
         
         y=np.zeros((1,(ct-self.queue.servers+1)*nSerStates))

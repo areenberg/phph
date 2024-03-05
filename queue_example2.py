@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+#EXAMPLE 2
+
 #In this example we replicate results from de Smit (1983)
 #and Ramaswami & Lucantoni (1985).
 
