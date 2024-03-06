@@ -2,7 +2,7 @@
 
 #EXAMPLE 2
 
-#In this example we replicate results from de Smit (1983)
+#In this example, we replicate results from de Smit (1983)
 #and Ramaswami & Lucantoni (1985).
 
 #de Smit, J. H. A. (1983). Numerical solution for the multi-server queue with
@@ -16,9 +16,9 @@
 #   PREAMPLE
 #--------------------------------
 
+import phph
 import math
 import numpy as np
-import phph
 
 #--------------------------------
 #   E_5 / H_2 / 15 
