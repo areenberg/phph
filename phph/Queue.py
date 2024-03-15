@@ -18,10 +18,19 @@ class Queue:
         self.serviceExitRates = -np.sum(serviceGenerator,axis=1)
         #number of servers
         self.servers = servers
+        #check parameters
+        self.feasible=True
+        self.checkParameters()
+        
 
     def checkParameters(self):
         #check the input parameters
-        print()
+        arrivalRate = 1/self.meanInterArrivalTime()
+        serviceRate = 1/self.meanInterServiceTime()
+        if arrivalRate>=serviceRate*self.servers:
+            self.feasible=False
+            print("Error: The model is infeasible since arrivalRate > serviceRate x servers")
+            print("arrivalRate / (serviceRate x servers) =",arrivalRate/(serviceRate*self.servers))        
 
     def nPhasesArrival(self):
         return(self.arrivalGenerator.shape[0])

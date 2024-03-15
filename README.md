@@ -108,3 +108,8 @@ mdl = phph.model(arrivalInitDistribution,arrivalGenerator,
 * `mdl.waitDist(t,type="actual")`. Returns the probability of waiting more than `t` time units. Choose between `"actual"` (default) and `"virtual"` using the argument `type`.
 * `mdl.meanQueueLength()`. Returns the expected length of the queue. 
 * `mdl.meanOccupancy()`. Returns the expected occupancy.
+
+## Other output
+
+* `mdl.localStateDist(k)`. Returns the local state distribution of level `k`.
+* `mdl.localState(k)`. Returns the definition of the local state space of level `k`.

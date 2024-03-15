@@ -14,12 +14,26 @@ class model:
     serviceInitDistribution,serviceGenerator,
     servers,eps=1e-9):
         
-        self.queue = Queue(arrivalInitDistribution,arrivalGenerator,
-                           serviceInitDistribution,serviceGenerator,
-                           servers)
+        self.feasibleParam=True
         self.eps=eps
-        self.initialize()
+        arrivalInitDistribution = self.__fixVector(arrivalInitDistribution)
+        serviceInitDistribution = self.__fixVector(serviceInitDistribution)
+        arrivalGenerator = self.__fixMatrix(arrivalGenerator)
+        serviceGenerator = self.__fixMatrix(serviceGenerator)
+        servers = self.__fixScalar(servers)
         
+        if np.any(np.isnan(servers)) or not self.feasibleParameters(arrivalInitDistribution,arrivalGenerator) or not self.feasibleParameters(serviceInitDistribution,serviceGenerator):
+            self.feasibleParam=False
+        
+        if self.feasibleParam:
+            self.queue = Queue(arrivalInitDistribution,arrivalGenerator,
+                            serviceInitDistribution,serviceGenerator,
+                            servers)
+            if self.queue.feasible:
+                self.initialize()
+            else:
+                self.feasibleParam=False    
+
     def initialize(self):
         
         #create matrices
@@ -38,64 +52,88 @@ class model:
     def meanQueueLength(self):
         #returns the mean number of
         #customers that are waiting
-        l = len(self.ls.stateSpace)
-        meanQueue = np.sum(np.matmul(self.localStateDist(self.queue.servers+1),np.linalg.matrix_power(np.subtract(np.identity(l),self.subMats.neutsMat),-2)))
-        return(meanQueue)
+        if self.feasibleParam:
+            l = len(self.ls.stateSpace)
+            meanQueue = np.sum(np.matmul(self.localStateDist(self.queue.servers+1),np.linalg.matrix_power(np.subtract(np.identity(l),self.subMats.neutsMat),-2)))
+            return(meanQueue)
+        else:
+            return(float("nan"))
     
     def meanWaitingTime(self):
         #returns the mean waiting time
         #as observed by the customers
-        meanWait = self.meanQueueLength()*self.queue.meanInterArrivalTime()
-        return(meanWait)
+        if self.feasibleParam:
+            meanWait = self.meanQueueLength()*self.queue.meanInterArrivalTime()
+            return(meanWait)
+        else:
+            return(float("nan"))
 
     def meanOccupancy(self):
         #returns the mean number
         #of customers in the system
-        meanOcc = self.meanQueueLength()+(self.queue.meanInterServiceTime()/self.queue.meanInterArrivalTime())
-        return(meanOcc)
+        if self.feasibleParam:
+            meanOcc = self.meanQueueLength()+(self.queue.meanInterServiceTime()/self.queue.meanInterArrivalTime())
+            return(meanOcc)
+        else:
+            return(float("nan"))
 
     def meanResponse(self):
         #returns the mean response time
-        resp = self.meanOccupancy()*self.queue.meanInterArrivalTime()
-        return(resp)
+        if self.feasibleParam:
+            resp = self.meanOccupancy()*self.queue.meanInterArrivalTime()
+            return(resp)
+        else:
+            return(float("nan"))
     
     def probWait(self,type="actual"):
         #returns the probability of waiting
-        if type=="actual": #observed by the customers
-            p=0
-            for k in range(self.queue.servers):
-                p+=self.__probKArrivals(k)
-            pw=p.item()    
-            return(1-pw)
-        elif type=="virtual": #observed by Poisson arrivals
-            l = len(self.ls.stateSpace)
-            return(1-np.sum(self.boundaryProb[0,0:(self.boundaryProb.shape[1]-l)]))
+        if self.feasibleParam:
+            if type=="actual": #observed by the customers
+                p=0
+                for k in range(self.queue.servers):
+                    p+=self.__probKArrivals(k)
+                pw=p.item()    
+                return(1-pw)
+            elif type=="virtual": #observed by Poisson arrivals
+                l = len(self.ls.stateSpace)
+                return(1-np.sum(self.boundaryProb[0,0:(self.boundaryProb.shape[1]-l)]))
+        else:
+            return(float("nan"))
     
     def probEmpty(self,type="actual"):
         #returns the probability that the
         #system is empty
-        if type=="actual": #observed by the customers
-            p=self.__probKArrivals(0)
-            return(p.item())
-        elif type=="virtual": #observed by Poisson arrivals
-            s = self.localState(0)
-            return(np.sum(self.boundaryProb[0,0:len(s)]))
+        if self.feasibleParam:
+            if type=="actual": #observed by the customers
+                p=self.__probKArrivals(0)
+                return(p.item())
+            elif type=="virtual": #observed by Poisson arrivals
+                s = self.localState(0)
+                return(np.sum(self.boundaryProb[0,0:len(s)]))
+        else:
+            return(float("nan"))
         
     def waitDist(self,t,type="actual"):    
         #returns the probability of waiting
         #longer than t units of time
-        if type=="actual":
-            return self.__actualWaitDist(t)
-        elif type=="virtual":
-            return self.__virtualWaitDist(t)
+        if self.feasibleParam:
+            if type=="actual":
+                return self.__actualWaitDist(t)
+            elif type=="virtual":
+                return self.__virtualWaitDist(t)
+        else:
+            return(float("nan"))
             
     def probK(self,k,type="actual"):
         #returns the probability of observing k customers
         #in the system
-        if type=="actual": #observed by the customers
-            return(self.__probKArrivals(k))
-        elif type=="virtual": #observed by Poisson arrivals
-            return(np.sum(self.localStateDist(k)))
+        if self.feasibleParam:
+            if type=="actual": #observed by the customers
+                return(self.__probKArrivals(k))
+            elif type=="virtual": #observed by Poisson arrivals
+                return(np.sum(self.localStateDist(k)))
+        else:
+            return(float("nan"))
         
     def __probKArrivals(self,k):
         #returns the probability that an
@@ -478,4 +516,68 @@ class model:
         
         #employ uniformization
         uni = BlockUniformization(bMat,lMat)
-        return uni.run(y,t)    
+        return uni.run(y,t)
+    
+    def __fixVector(self,vec):
+        #checks and converts the input
+        #vector to a numpy row vector
+        if isinstance(vec,np.ndarray) and vec.ndim==1:
+            return np.matrix(vec)
+        elif isinstance(vec,list) and len(vec)>=1 and isinstance(vec[0],float):
+            return np.matrix(np.array(vec))
+        elif isinstance(vec,np.matrix) and vec.shape[0]>1 and vec.shape[1]==1:
+            return vec.T
+        elif isinstance(vec,np.matrix) and vec.shape[0]==1 and vec.shape[1]>=1:
+            return vec
+        else:
+            print("Error: Infeasible input vector")
+            return float("nan")
+        
+    def __fixMatrix(self,mat):
+        #checks and converts the input
+        #matrix to a numpy matrix
+        if isinstance(mat,np.ndarray) and mat.ndim==2:
+            return np.matrix(mat)
+        elif isinstance(mat,list) and len(mat)>=1 and not isinstance(mat[0],int) and not isinstance(mat[0],float) and len(mat[0])>=1:
+            return np.matrix(np.array(mat))
+        elif isinstance(mat,np.matrix) and mat.shape[0]==mat.shape[1]:
+            return mat
+        else:
+            print("Error: Infeasible input matrix")
+            return float("nan")
+    
+    def __fixScalar(self,n):
+        #checks the input scalar
+        if isinstance(n,float):
+            n = int(n)
+            print("Warning: Possibly lossy conversion from 'float' to 'int'.")
+        elif not isinstance(n,int):
+            print("Error: Infeasible input scalar.")
+            return float("nan")    
+        if n<=0:
+            print("Error: Infeasible input scalar.")
+            return float("nan")
+        return n
+
+    def feasibleParameters(self,dist,gen):
+        #checks the feasibility of the
+        #initial distribution and generator
+        #matrix
+        if np.any(np.isnan(dist)) or np.any(np.isnan(gen)):
+            return False
+        if gen.shape[0]!=gen.shape[1]:
+            print("Error: In the PH generators, the number of rows must equal the number of columns.")
+            return False
+        elif dist.shape[1]!=gen.shape[0]:
+            print("Error: The number of elements in the initial distribution must equal the number of rows and columns in the corresponding PH generator.")
+            return False
+        exvec = -np.sum(gen,axis=1)
+        v = np.asarray(exvec).flatten()
+        if np.any(v<0) or np.sum(exvec)==0:
+            print("Error: Infeasible PH generator.")
+            return False
+        sm = np.sum(dist)
+        if sm>1 or sm<0:
+            print("Error: Infeasible initial distribution.")
+            return False
+        return True
