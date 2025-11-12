@@ -1,4 +1,4 @@
-# `phph` -- A Python package for PH/PH/c queueing systems
+# PhPh: A Python package for PH/PH/c queueing systems
  
 `phph` is the Python package for evaluating the performance of PH/PH/c queueing systems.
 
