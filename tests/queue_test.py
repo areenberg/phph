@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 
-#EXAMPLE 3
-
-#In this example we evaluate a PH/PH/C queue, where the
-#inter-arrival and service time distributions reduce to
-#exponential distributions. We validate the output by 
-#computing the difference from the results of the
-#corresponding M/M/C queue. 
+"""
+In this program, we evaluate a PH/PH/C queue, where the inter-arrival and service time distributions
+reduce to exponential distributions. We validate the output by computing the difference from the results of the
+corresponding M/M/C queue.
+"""
 
 #--------------------------------
 #   PREAMPLE
@@ -14,6 +12,7 @@
 
 import phph
 import math
+import sys
 import numpy as np
 
 #--------------------------------
@@ -95,18 +94,27 @@ mdl = phph.model(arrivalInitDistribution,arrivalGenerator,
 #   VALIDATION 
 #--------------------------------
 
-#Expected waiting time, E[W], difference 
-print(abs(mdl.meanWaitingTime()-meanWaitingTimeMMC(3,1,servers)))
+#Expected waiting time, E[W], difference
+diffExpected = abs(mdl.meanWaitingTime()-meanWaitingTimeMMC(3,1,servers))
+print(diffExpected)
 #1.068590e-15
 
 #Expected number of customers in system, E[C], difference
-print(abs(mdl.meanOccupancy()-meanOccupancyMMC(3,1,servers)))
+diffOccupancy = abs(mdl.meanOccupancy()-meanOccupancyMMC(3,1,servers))
+print(diffOccupancy)
 #8.881784e-16
 
 #Probability that the system is empty, P(C=0), difference
-print(abs(mdl.probEmpty()-probEmptyMMC(3,1,servers)))
+diffProbEmpty = abs(mdl.probEmpty()-probEmptyMMC(3,1,servers))
+print(diffProbEmpty)
 #4.254318e-11
 
 #Probability of waiting longer than t=1 time units, P(W>t), difference
-print(abs(mdl.waitDist(1)-waitDistMMC(3,1,servers,1)))
+diffWait = abs(mdl.waitDist(1)-waitDistMMC(3,1,servers,1))
+print(diffWait)
 #1.118148e-10
+
+if np.round(diffExpected,9)!=0.0 or np.round(diffOccupancy,9)!=0.0 or np.round(diffProbEmpty,9)!=0.0 or np.round(diffWait,9)!=0.0:
+    sys.exit("Validation test failed. The metrics could not be replicated.")
+else:
+    print("Validation test successful!")

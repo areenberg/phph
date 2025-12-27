@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
 
-#EXAMPLE 2
+"""
+In this program, we validate the 'phph' package by replicating
+results from de Smit (1983) and Ramaswami & Lucantoni (1985).
 
-#In this example, we replicate results from de Smit (1983)
-#and Ramaswami & Lucantoni (1985).
+References:
 
-#de Smit, J. H. A. (1983). Numerical solution for the multi-server queue with
-#hyper-exponential service times. Operations Research Letters, 2(5), 217–224.
+de Smit, J. H. A. (1983). Numerical solution for the multi-server queue with
+hyper-exponential service times. Operations Research Letters, 2(5), 217–224.
 
-#Ramaswami, V., & Lucantoni, D. M. (1985). Algorithms for the multi-server
-#queue with phase type service. Communications in Statistics. Stochastic
-#Models, 1(3), 393–417. https://doi.org/10.1080/15326348508807020
+Ramaswami, V., & Lucantoni, D. M. (1985). Algorithms for the multi-server
+queue with phase type service. Communications in Statistics. Stochastic
+Models, 1(3), 393–417. https://doi.org/10.1080/15326348508807020
+"""
 
 #--------------------------------
 #   PREAMPLE

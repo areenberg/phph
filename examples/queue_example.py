@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
-#EXAMPLE 1
-
-#In this example we demonstrate how to use
-#the 'phph' package to evaluate the performance
-#of an E_2/H_3/C queue   
+"""
+In this example we demonstrate how to use the 'phph' package to evaluate the performance
+of an E_2/H_3/C queue.   
+"""
 
 #--------------------------------
 #   PREAMPLE
