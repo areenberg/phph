@@ -78,11 +78,11 @@ print(mdl.probWait())
 #0.562802
 ```
 
-# User manual
+# Classes and methods
 
 The following shows how to create the model and provides a list of all available performance metrics.
 
-## Object creation
+## Model class
 
 Create the model object with:
 
