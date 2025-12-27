@@ -1,6 +1,6 @@
-# `phph` -- A Python package for PH/PH/c queueing systems
+# PhPh: A Python package for PH/PH/c queueing systems
  
-`phph` is the Python package for evaluating the performance of PH/PH/c queueing systems.
+PhPh is a Python package for evaluating PH/PH/c queueing systems.
 
 ## Features
 
@@ -11,11 +11,11 @@
 
 # Quick start guide
 
-The following shows how to get quickly started with `phph`.
+The following shows how to get quickly started with PhPh.
 
 ## Installation
 
-Download and install `phph` directly from PyPI. 
+Download and install PhPh directly from PyPI. 
 
 ```
 pip install phph
