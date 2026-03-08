@@ -189,7 +189,7 @@ class model:
             lk = np.zeros((len(state),1))
             lk[ids[j],0] = 1
             numer = np.matmul(locStateDist,lk)
-            prvec[0,j] = numer/self.allProbPhasei[0,i]
+            prvec[0,j] = numer.item()/self.allProbPhasei[0,i]
         return (prvec)
 
     def __nServiceStates(self,k):
@@ -220,7 +220,7 @@ class model:
         for idx in ids:
             lk[idx] = 1    
         pk = beta+np.matmul(np.matmul(self.localStateDist(self.queue.servers),np.linalg.inv(np.subtract(np.identity(self.subMats.neutsMat.shape[1]),self.subMats.neutsMat))),lk)
-        return(pk)        
+        return(pk.item())
 
     def __probPhaseExit(self,i):
         #returns the conditional probability

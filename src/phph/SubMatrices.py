@@ -92,9 +92,9 @@ class SubMatrices:
         for sidx in range(l):
             for jidx in range(l):
                 if sidx==jidx: 
-                    self.forwardMat[sidx,jidx] = self.queue.arrivalExitRates[ls.stateSpace[sidx][1]]*self.queue.arrivalInitDistribution[0,ls.stateSpace[sidx][1]]
+                    self.forwardMat[sidx,jidx] = self.queue.arrivalExitRates[ls.stateSpace[sidx][1],0]*self.queue.arrivalInitDistribution[0,ls.stateSpace[sidx][1]]
                 elif np.array_equal(ls.stateSpace[sidx][0],ls.stateSpace[jidx][0]):
-                    self.forwardMat[sidx,jidx] = self.queue.arrivalExitRates[ls.stateSpace[sidx][1]]*self.queue.arrivalInitDistribution[0,ls.stateSpace[jidx][1]]
+                    self.forwardMat[sidx,jidx] = self.queue.arrivalExitRates[ls.stateSpace[sidx][1],0]*self.queue.arrivalInitDistribution[0,ls.stateSpace[jidx][1]]
 
 
     def createBackwardMatrix(self,ls):
@@ -113,10 +113,10 @@ class SubMatrices:
                     sp = ls.stateSpace[sidx][0]
                     nz = np.nonzero(sp)[0]
                     for i in nz:
-                        self.backwardMat[sidx,jidx] += sp[i]*self.queue.serviceExitRates[i]*self.queue.serviceInitDistribution[0,i]
+                        self.backwardMat[sidx,jidx] += sp[i]*self.queue.serviceExitRates[i,0]*self.queue.serviceInitDistribution[0,i]
                 elif sj[0]!=-1 and sj[1]!=-1:
                     sp = ls.stateSpace[sidx][0]
-                    self.backwardMat[sidx,jidx] = sp[sj[0]]*self.queue.serviceExitRates[sj[0]]*self.queue.serviceInitDistribution[0,sj[1]] 
+                    self.backwardMat[sidx,jidx] = sp[sj[0]]*self.queue.serviceExitRates[sj[0],0]*self.queue.serviceInitDistribution[0,sj[1]]
 
 
     def createLocalMatrix(self,ls):
@@ -168,9 +168,8 @@ class SubMatrices:
             for jidx in range(l_j):
                 ns = ls_i.serviceIncreaseOne(ls_i.stateSpace[sidx],ls_j.stateSpace[jidx])
                 if ns!=-1:
-                    mat[sidx,jidx] = self.queue.arrivalExitRates[ls_i.stateSpace[sidx][1]]*self.queue.arrivalInitDistribution[0,ls_j.stateSpace[jidx][1]]*self.queue.serviceInitDistribution[0,ns]        
+                    mat[sidx,jidx] = self.queue.arrivalExitRates[ls_i.stateSpace[sidx][1],0]*self.queue.arrivalInitDistribution[0,ls_j.stateSpace[jidx][1]]*self.queue.serviceInitDistribution[0,ns]        
         return(mat)
-
 
     def createBackwardInhomMatrix(self,i,j):
         #create a sub-matrix associated with
@@ -195,7 +194,7 @@ class SubMatrices:
                 ns = ls_i.serviceReduceOne(ls_i.stateSpace[sidx],ls_j.stateSpace[jidx])
                 if ns!=-1:
                     sp = ls_i.stateSpace[sidx][0]
-                    mat[sidx,jidx] = self.queue.serviceExitRates[ns]*sp[ns]        
+                    mat[sidx,jidx] = self.queue.serviceExitRates[ns,0]*sp[ns]        
         return(mat)
 
 
