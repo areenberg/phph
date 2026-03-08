@@ -4,17 +4,17 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "phph"
-version = "0.1"
+version = "0.1.1"
 dependencies = [
-  "numpy>=1.24.2",
-  "scipy>=1.10.1"
+  "numpy>=2.4.1",
+  "scipy>=1.17.0"
 ]
 authors = [
   { name="Anders Reenberg Andersen", email="andersra@live.dk" },
 ]
 description = "A Python package for PH/PH/c queueing systems"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Programming Language :: Python :: 3",
