@@ -2,10 +2,24 @@ import math
 import numpy as np
 
 class BlockUniformization:
-    #conducts uniformization exploiting
-    #the block matrix structure
+    """
+    Implements the uniformization method for continuous-time Markov chains,
+    exploiting the block matrix structure.
+    """
 
     def __init__(self,bMat,lMat,eps=1e-9):
+        """
+        Initialize the BlockUniformization object.
+
+        Parameters
+        ----------
+        bMat : numpy.ndarray
+            Block transition matrix representing transitions between blocks.
+        lMat : numpy.ndarray
+            Local transition matrix (typically generator submatrix).
+        eps : float, optional
+            Desired numerical precision for truncation (default is 1e-9).
+        """
         self.eps=eps
         self.bMat=bMat
         self.lMat=lMat
@@ -17,15 +31,43 @@ class BlockUniformization:
         self.p_bmat,self.p_lmat = self.__stochMat()
          
     def __uniformRate(self):
-        #returns the uniformization rate
+        """
+        Compute the uniformization rate.
+
+        Returns
+        -------
+        float
+            Maximum absolute value of the diagonal elements of lMat.
+        """
         return np.max(np.abs(np.diag(self.lMat)))
     
     def __stochMat(self):
+        """
+        Construct the stochastic matrices used in uniformization.
+
+        Returns
+        -------
+        tuple of numpy.ndarray
+            (p_bmat, p_lmat) where both matrices are scaled to form
+            stochastic transition matrices.
+        """
         return self.bMat*(1.0/self.uniRate), np.add(self.lMat*(1.0/self.uniRate),np.identity(self.lMat.shape[0]))
         
     def __numbIter(self,t):
-        #returns the required number of
-        #iterations
+        """
+        Compute the required number of iterations for the uniformization sum.
+
+        Parameters
+        ----------
+        t : float
+            Time horizon.
+
+        Returns
+        -------
+        int
+            Number of iterations needed to satisfy the error tolerance.
+        """
+        
         sigma = 1
         si = 1
         K = 0
@@ -38,8 +80,24 @@ class BlockUniformization:
         return K;        
         
     def run(self,initDist,t):
-        #evaluate cumulative probability
-        #using uniformization
+        """
+        Evaluate the cumulative probability using uniformization.
+
+        Handles potential numerical underflow by splitting the computation
+        into smaller time steps if necessary.
+
+        Parameters
+        ----------
+        initDist : numpy.ndarray
+            Initial probability distribution (row vector).
+        t : float
+            Time horizon.
+
+        Returns
+        -------
+        float
+            Cumulative probability of being in non-absorbing states at time t.
+        """
                 
         #evaluate risk that self.uniRate*t will cause underflow
         tUnderflow = 70.0/self.uniRate
@@ -59,12 +117,25 @@ class BlockUniformization:
             return self.__evalDirect(initDist,t) 
             
     def __evalInParts(self,initDist,steps,tvec):
-        #Applies the uniformization algorithm
-        #*in parts* to avoid underflow.
-        #Exploits the block structure returning the
-        #cumulative probability over the states where the
-        #process is *not* absorbed after t units
-        #of time
+        """
+        Applies the uniformization algorithm *in parts* to avoid underflow.
+        Exploits the block structure returning the cumulative probability over
+        the states where the process is *not* absorbed after t units of time.
+
+        Parameters
+        ----------
+        initDist : numpy.ndarray
+            Initial probability distribution.
+        steps : int
+            Number of sub-intervals.
+        tvec : numpy.ndarray
+            Array of time intervals for each step.
+
+        Returns
+        -------
+        float
+            Cumulative probability over non-absorbing states.
+        """
         
         #initialize
         newDist = np.copy(initDist)
@@ -99,11 +170,23 @@ class BlockUniformization:
         return np.sum(newDist)
                 
     def __evalDirect(self,initDist,t):
-        #Applies the uniformization algorithm.
-        #Exploits the block structure returning the
-        #cumulative probability over the states where the
-        #process is *not* absorbed after t units
-        #of time
+        """
+        Applies the uniformization algorithm.
+        Exploits the block structure returning the cumulative probability over
+        the states where the process is *not* absorbed after t units of time
+
+        Parameters
+        ----------
+        initDist : numpy.ndarray
+            Initial probability distribution.
+        t : float
+            Time horizon.
+
+        Returns
+        -------
+        float
+            Cumulative probability over non-absorbing states.
+        """
         
         #initialize
         cmp = np.sum(initDist) #cumulated probability
