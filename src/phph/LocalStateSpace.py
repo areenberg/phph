@@ -3,15 +3,40 @@ from scipy.special import comb
 
 
 class LocalStateSpace:
-    #Class for generating a local state space at a specific level in the
-    #QBD.
+    """
+    Class for generating and analyzing the local state space at a given level
+    in a Quasi-Birth-Death (QBD) process.
+    """
 
     def __init__(self,queue):
+        """
+        Initialize the LocalStateSpace object.
+
+        Parameters
+        ----------
+        queue : object
+            Queueing system object providing methods such as number of
+            arrival/service phases and number of servers.
+        """
         self.queue = queue
 
 
     def generateStateSpace(self,l):
-        #generate state space at level l
+        """
+        Generate the full local state space at level l.
+
+        Combines the service state space with the arrival phase states.
+
+        Parameters
+        ----------
+        l : int
+            Level in the QBD process.
+
+        Returns
+        -------
+        None
+            The resulting state space is stored in self.stateSpace.
+        """
 
         #the local state space
         self.stateSpace = []
@@ -26,8 +51,19 @@ class LocalStateSpace:
 
 
     def serviceSpaceSize(self,l):
-        #calculate the size of the state space
-        #accounting for the servers only
+        """
+        Calculate the size of the state space accounting for the servers only.
+
+        Parameters
+        ----------
+        l : int
+            Level in the QBD process.
+
+        Returns
+        -------
+        int
+            Number of possible service configurations.
+        """
 
         if l>=self.queue.servers:
             z = comb(self.queue.servers + self.queue.nPhasesService()-1,
@@ -39,9 +75,20 @@ class LocalStateSpace:
         return(z)
 
     def serviceStateSpace(self,l):
-        #generate the state space accounting
-        #for servers only
+        """
+        Generate the state space accounting for servers only.
 
+        Parameters
+        ----------
+        l : int
+            Level in the QBD process.
+
+        Returns
+        -------
+        numpy.ndarray
+            Matrix where each row corresponds to a service configuration.
+        """
+        
         if l>=self.queue.servers:
             x=self.queue.servers
         else:
@@ -70,9 +117,24 @@ class LocalStateSpace:
 
 
     def serviceJumpOne(self,s1,s2):
-        #returns start and end phases of the jumping server.
-        #returns [-1,-1] if jump is infeasible.
-        #s1 and s2 indicates the states (as lists) that are compared.
+        """
+        Returns start and end phases of the jumping server.
+        Returns [-1,-1] if jump is infeasible.
+        s1 and s2 indicates the states (as lists) that are compared.
+
+        Parameters
+        ----------
+        s1 : list
+            Initial state.
+        s2 : list
+            Target state.
+
+        Returns
+        -------
+        list
+            [start_phase, end_phase] if a valid jump occurs,
+            [-1, -1] otherwise.
+        """
 
         if s1[1]-s2[1]==0:
             diff = s2[0]-s1[0]
@@ -99,9 +161,24 @@ class LocalStateSpace:
             return([-1,-1])
 
     def serviceIncreaseOne(self,s1,s2):
-        #returns phase of the newly occupied server.
-        #returns -1 if jump is infeasible.
-        #s1 and s2 indicates the states (as lists) that are compared.
+        """
+        Returns phase of the newly occupied server.
+        Returns -1 if jump is infeasible.
+        s1 and s2 indicates the states (as lists) that are compared.
+
+        Parameters
+        ----------
+        s1 : list
+            Initial state.
+        s2 : list
+            Target state.
+
+        Returns
+        -------
+        int
+            Index of the phase where a server was added,
+            or -1 if infeasible.
+        """
 
         diff = s2[0]-s1[0]
         nn=0
@@ -120,9 +197,24 @@ class LocalStateSpace:
             return(-1)
         
     def serviceReduceOne(self,s1,s2):
-        #returns phase of the newly idle server.
-        #returns -1 if jump is infeasible.
-        #s1 and s2 indicates the states (as lists) that are compared.
+        """
+        Returns phase of the newly idle server.
+        Returns -1 if jump is infeasible.
+        s1 and s2 indicates the states (as lists) that are compared.
+
+        Parameters
+        ----------
+        s1 : list
+            Initial state.
+        s2 : list
+            Target state.
+
+        Returns
+        -------
+        int
+            Index of the phase where a server was removed,
+            or -1 if infeasible.
+        """
 
         if s1[1]-s2[1]==0:
             diff = s2[0]-s1[0]
@@ -145,10 +237,24 @@ class LocalStateSpace:
 
 
     def arrivalJumpOne(self,s1,s2):
-        #returns the start and end phase of the jumping
-        #arrival.
-        #returns [-1,-1] if jump is infeasible.
-        #s1 and s2 indicates the states that are compared.
+        """
+        Returns the start and end phase of the jumping arrival.
+        Returns [-1,-1] if jump is infeasible.
+        s1 and s2 indicates the states that are compared.
+
+        Parameters
+        ----------
+        s1 : list
+            Initial state.
+        s2 : list
+            Target state.
+
+        Returns
+        -------
+        list
+            [start_phase, end_phase] if valid,
+            [-1, -1] otherwise.
+        """
 
         diff = s2[0]-s1[0]
         nn = 0
@@ -161,8 +267,23 @@ class LocalStateSpace:
             return([-1,-1])
 
     def noChange(self,s1,s2):
-        #returns true if neither the servers nor the arrival
-        #change phase
+        """
+        Returns true if neither the servers nor the arrival change phase.
+        
+        Parameters
+        ----------
+        s1 : list
+            Initial state.
+        s2 : list
+            Target state.
+
+        Returns
+        -------
+        bool
+            True if neither service nor arrival phases change,
+            False otherwise.
+        """
+        
         diff = s2[0]-s1[0]
         nn = 0
         for i in range(len(diff)):
