@@ -7,12 +7,37 @@ from phph.BlockUniformization import BlockUniformization
 
 
 class model:
-    #evaluate the state distribution of the QBD and various
-    #performance metrics of the queue 
+    """
+    Evaluate the state distribution of the QBD and various
+    performance metrics of the queue.
+    """
 
     def __init__(self,arrivalInitDistribution,arrivalGenerator,
     serviceInitDistribution,serviceGenerator,
     servers,eps=1e-9):
+        """
+        Initialize the model with arrival and service parameters.
+
+        Parameters
+        ----------
+        arrivalInitDistribution : list
+            Initial distribution of the arrival process.
+        arrivalGenerator : list
+            Generator matrix of the arrival process.
+        serviceInitDistribution : list
+            Initial distribution of the service process.
+        serviceGenerator : list
+            Generator matrix of the service process.
+        servers : list
+            Number of servers.
+        eps : float
+            Tolerance for numerical operations.
+
+        Returns
+        -------
+        None
+            Initializes the model object.
+        """
         
         self.feasibleParam=True
         self.eps=eps
@@ -35,6 +60,18 @@ class model:
                 self.feasibleParam=False    
 
     def initialize(self):
+        """
+        Initialize internal structures and precompute matrices.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+            Sets up state space, matrices, and boundary probabilities.
+        """
         
         #create matrices
         self.ls = LocalStateSpace(self.queue)
@@ -50,8 +87,18 @@ class model:
         self.__storeAllProbPhasei()
         
     def meanQueueLength(self):
-        #returns the mean number of
-        #customers that are waiting
+        """
+        Returns the mean number of customers that are waiting.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        float
+            Mean queue length or NaN if parameters are infeasible.
+        """
         if self.feasibleParam:
             l = len(self.ls.stateSpace)
             meanQueue = np.sum(np.matmul(self.localStateDist(self.queue.servers+1),np.linalg.matrix_power(np.subtract(np.identity(l),self.subMats.neutsMat),-2)))
@@ -60,8 +107,18 @@ class model:
             return(float("nan"))
     
     def meanWaitingTime(self):
-        #returns the mean waiting time
-        #as observed by the customers
+        """
+        Returns the mean waiting time as observed by the customers.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        float
+            Mean waiting time or NaN if parameters are infeasible.
+        """
         if self.feasibleParam:
             meanWait = self.meanQueueLength()*self.queue.meanInterArrivalTime()
             return(meanWait)
@@ -69,8 +126,18 @@ class model:
             return(float("nan"))
 
     def meanOccupancy(self):
-        #returns the mean number
-        #of customers in the system
+        """
+        Returns the mean number of customers in the system.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        float
+            Mean system occupancy or NaN if parameters are infeasible.
+        """
         if self.feasibleParam:
             meanOcc = self.meanQueueLength()+(self.queue.meanInterServiceTime()/self.queue.meanInterArrivalTime())
             return(meanOcc)
@@ -78,7 +145,18 @@ class model:
             return(float("nan"))
 
     def meanResponse(self):
-        #returns the mean response time
+        """
+        Returns the mean response time.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        float
+            Mean response time or NaN if parameters are infeasible.
+        """
         if self.feasibleParam:
             resp = self.meanOccupancy()*self.queue.meanInterArrivalTime()
             return(resp)
@@ -86,7 +164,19 @@ class model:
             return(float("nan"))
     
     def probWait(self,type="actual"):
-        #returns the probability of waiting
+        """
+        Returns the probability of waiting.
+
+        Parameters
+        ----------
+        type : list
+            Type of observation ("actual" or "virtual").
+
+        Returns
+        -------
+        float
+            Probability of waiting or NaN if parameters are infeasible.
+        """
         if self.feasibleParam:
             if type=="actual": #observed by the customers
                 p=0
@@ -101,8 +191,19 @@ class model:
             return(float("nan"))
     
     def probEmpty(self,type="actual"):
-        #returns the probability that the
-        #system is empty
+        """
+        Returns the probability that the system is empty.
+
+        Parameters
+        ----------
+        type : list
+            Type of observation ("actual" or "virtual").
+
+        Returns
+        -------
+        float
+            Probability that the system is empty or NaN if infeasible.
+        """
         if self.feasibleParam:
             if type=="actual": #observed by the customers
                 p=self.__probKArrivals(0)
@@ -114,8 +215,21 @@ class model:
             return(float("nan"))
         
     def waitDist(self,t,type="actual"):    
-        #returns the probability of waiting
-        #longer than t units of time
+        """
+        Returns the probability of waiting longer than t units of time.
+
+        Parameters
+        ----------
+        t : list
+            Time threshold.
+        type : list
+            Type of observation ("actual" or "virtual").
+
+        Returns
+        -------
+        float
+            Probability of waiting longer than t or NaN if infeasible.
+        """
         if self.feasibleParam:
             if type=="actual":
                 return self.__actualWaitDist(t)
@@ -125,8 +239,21 @@ class model:
             return(float("nan"))
             
     def probK(self,k,type="actual"):
-        #returns the probability of observing k customers
-        #in the system
+        """
+        Returns the probability of observing k customers in the system.
+
+        Parameters
+        ----------
+        k : list
+            Number of customers.
+        type : list
+            Type of observation ("actual" or "virtual").
+
+        Returns
+        -------
+        float
+            Probability of k customers or NaN if infeasible.
+        """
         if self.feasibleParam:
             if type=="actual": #observed by the customers
                 return(self.__probKArrivals(k))
@@ -136,24 +263,64 @@ class model:
             return(float("nan"))
         
     def __probKArrivals(self,k):
-        #returns the probability that an
-        #*arriving customer* observes
-        #k customers in the system
+        """
+        Returns the probability that an *arriving customer* observes
+        k customers in the system.
+
+        Parameters
+        ----------
+        k : list
+            Number of customers in the system.
+
+        Returns
+        -------
+        float
+            Probability that an arriving customer observes k customers.
+        """
         pr=0
         for i in range(self.queue.nPhasesArrival()):
             pr+=self.__probKPhase(k,i)*self.allExitPhase[0,i]
         return(pr)
 
     def __probServiceStateArrivals(self,k,j):
-        #returns the probability that an
-        #*arriving customer* observes
-        #level k and local 'service-state' j
+        """
+        Returns the probability that an *arriving customer* observes
+        level k and local service-state j.
+
+        Parameters
+        ----------
+        k : list
+            Level in the system.
+        j : list
+            Service-state index.
+
+        Returns
+        -------
+        float
+            Probability of observing level k and service-state j.
+        """
         pr=0
         for i in range(self.queue.nPhasesArrival()):
             pr+=self.__probServiceStatePhase(k,i,j)*self.allExitPhase[0,i]
         return(pr)
 
     def __probKPhase(self,k,i):
+        """
+        Returns the conditional probability that the process is in level k
+        given that it is in phase i of the arrival process.
+
+        Parameters
+        ----------
+        k : list
+            Level in the system.
+        i : list
+            Arrival phase index.
+
+        Returns
+        -------
+        float
+            Conditional probability of being in level k given phase i.
+        """
         #returns the conditional probability that
         #the process is in level k when the process
         #is also in phase i of the arrival process  
@@ -166,6 +333,24 @@ class model:
         return (numer/self.__probPhase(i))
 
     def __probServiceStatePhase(self,k,i,j):
+        """
+        Returns the conditional probability that the process is in level k
+        and service-state j given that it is in phase i of the arrival process.
+
+        Parameters
+        ----------
+        k : list
+            Level in the system.
+        i : list
+            Arrival phase index.
+        j : list
+            Service-state index.
+
+        Returns
+        -------
+        float
+            Conditional probability of level k and service-state j given phase i.
+        """
         #returns the conditional probability that
         #the process is in level k and service in
         #local 'service-state' j when the process
@@ -179,6 +364,26 @@ class model:
         return (numer/self.allProbPhasei[0,i])
 
     def __vectorProbServiceStatePhase(self,i,nSerStates,state,locStateDist):
+        """
+        Returns a vector of conditional probabilities for each service-state,
+        given that the process is in phase i of the arrival process.
+
+        Parameters
+        ----------
+        i : list
+            Arrival phase index.
+        nSerStates : list
+            Number of service states.
+        state : list
+            Local state space.
+        locStateDist : list
+            Local state distribution.
+
+        Returns
+        -------
+        list
+            Vector of conditional probabilities for each service-state.
+        """
         #returns a vector of conditional probabilities
         #for each local 'service-state' evaluating if the
         #process is in level k when the process is also in
@@ -193,15 +398,38 @@ class model:
         return (prvec)
 
     def __nServiceStates(self,k):
-        #returns the number of 'service-states'
-        #on level k
+        """
+        Returns the number of service-states on level k.
+
+        Parameters
+        ----------
+        k : list
+            Level in the system.
+
+        Returns
+        -------
+        int
+            Number of service-states at level k.
+        """
         s = self.localState(k)
         ids = [m for m, sublist in enumerate(s) if sublist[1]==0]        
         return len(ids)
 
     def __probPhase(self,i):
-        #returns the (unconditional) probability that
-        #the arrival process is in phase i  
+        """
+        Returns the unconditional probability that the arrival process
+        is in phase i.
+
+        Parameters
+        ----------
+        i : list
+            Arrival phase index.
+
+        Returns
+        -------
+        float
+            Probability that the arrival process is in phase i.
+        """  
         
         #calculate inhomogeneous part of state space
         beta=0
@@ -223,12 +451,35 @@ class model:
         return(pk.item())
 
     def __probPhaseExit(self,i):
-        #returns the conditional probability
-        #of exiting given that the arrival
-        #process is currently in phase i
+        """
+        Returns the conditional probability of exiting given that the
+        arrival process is currently in phase i.
+
+        Parameters
+        ----------
+        i : list
+            Arrival phase index.
+
+        Returns
+        -------
+        float
+            Conditional exit probability from phase i.
+        """
         return self.queue.arrivalExitRates[i,0]/-self.queue.arrivalGenerator[i,i]
 
     def __storeAllExitPhase(self):
+        """
+        Computes and stores the distribution of phases from which arrivals exit.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+            Updates self.allExitPhase with exit phase probabilities.
+        """
         #returns the distribution (as a column vector) 
         #of phases that the arrival exits from.
         #Thus, each element in the distribution reflects
@@ -252,13 +503,36 @@ class model:
             y = np.matmul(y,pmat)
         
     def __storeAllProbPhasei(self):        
+        """
+        Computes and stores the unconditional probabilities for all arrival phases.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+            Updates self.allProbPhasei with phase probabilities.
+        """
         self.allProbPhasei = np.zeros((1,self.queue.nPhasesArrival()))
         for i in range(self.queue.nPhasesArrival()):
             self.allProbPhasei[0,i] = self.__probPhase(i)
 
     def localStateDist(self,k):
-        #returns the local state distribution
-        #of level k
+        """
+        Returns the local state distribution of level k.
+
+        Parameters
+        ----------
+        k : list
+            Level in the system.
+
+        Returns
+        -------
+        list
+            Local state distribution at level k.
+        """
         
         if k>=self.queue.servers:
             l = len(self.ls.stateSpace)
@@ -283,14 +557,38 @@ class model:
         return(xk)
 
     def localState(self,k):
-        #returns the definition of the
-        #local state space of level k
+        """
+        Returns the definition of the local state space of level k.
+
+        Parameters
+        ----------
+        k : list
+            Level in the system.
+
+        Returns
+        -------
+        list
+            Local state space at level k.
+        """
         
         ls = LocalStateSpace(self.queue)
         ls.generateStateSpace(k)
         return(ls.stateSpace)
 
     def __solveBoundary(self,method="gauss"):
+        """
+        Solves for the boundary probabilities using the specified method.
+
+        Parameters
+        ----------
+        method : list
+            Solution method ("gauss" or "power").
+
+        Returns
+        -------
+        None
+            Updates self.boundaryProb with normalized probabilities.
+        """
         
         boundaryMat = self.__createBoundaryMatrix()
         
@@ -306,8 +604,19 @@ class model:
         scaler = np.sum(x[0,0:x.shape[1]-self.subMats.localMat.shape[0]]) + np.sum(np.matmul(x[0,x.shape[1]-self.subMats.localMat.shape[0]:x.shape[1]],np.linalg.inv(np.subtract(np.identity(self.subMats.neutsMat.shape[1]),self.subMats.neutsMat))))
         self.boundaryProb = (1/scaler)*x            
         
-        
     def __createBoundaryMatrix(self):
+        """
+        Creates the boundary matrix for the QBD process.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        list
+            Boundary matrix.
+        """
         
         self.subMats.createNeutsMatrix(self.eps,method="logred")
         
@@ -345,11 +654,21 @@ class model:
                 dim_j += bMat.shape[1]
             
         return(boundMat)            
-            
 
     def __powerMethod(self,Q):
-        #derive a numerical solution to the
-        #stationary distribution using the power method
+        """
+        Derives a numerical solution to the stationary distribution using the power method.
+
+        Parameters
+        ----------
+        Q : list
+            Generator matrix.
+
+        Returns
+        -------
+        list
+            Stationary distribution vector.
+        """
         
         #create the P matrix
         qdiag = np.diag(Q)
@@ -378,8 +697,20 @@ class model:
 
 
     def __gaussianElim(self,Q):
-        #derive the exact solution to the stationary
-        #distribution using Guassian elimination
+        """
+        Derives the exact solution to the stationary distribution
+        using Gaussian elimination.
+
+        Parameters
+        ----------
+        Q : list
+            Generator matrix.
+
+        Returns
+        -------
+        list
+            Stationary distribution vector.
+        """
         
         A = np.transpose(Q)
         
@@ -408,6 +739,20 @@ class model:
     
     
     def __actualWaitDist(self,t):
+        """
+        Returns the probability that an arriving customer waits longer
+        than t units of time (actual observation).
+
+        Parameters
+        ----------
+        t : list
+            Time threshold.
+
+        Returns
+        -------
+        float
+            Probability of waiting longer than t.
+        """
         
         #fundamental parameters
         l = len(self.ls.stateSpace)
@@ -462,6 +807,20 @@ class model:
     
     
     def __virtualWaitDist(self,t):
+        """
+        Returns the probability that a virtual (Poisson) arrival waits
+        longer than t units of time.
+
+        Parameters
+        ----------
+        t : list
+            Time threshold.
+
+        Returns
+        -------
+        float
+            Probability of waiting longer than t.
+        """
         
         #fundamental parameters
         l = len(self.ls.stateSpace)
@@ -519,8 +878,19 @@ class model:
         return uni.run(y,t)
     
     def __fixVector(self,vec):
-        #checks and converts the input
-        #vector to a numpy row vector
+        """
+        Checks and converts the input vector to a numpy row vector.
+
+        Parameters
+        ----------
+        vec : list
+            Input vector.
+
+        Returns
+        -------
+        list
+            Converted numpy row vector or NaN if infeasible.
+        """
         if isinstance(vec,np.ndarray) and vec.ndim==1:
             return np.matrix(vec)
         elif isinstance(vec,list) and len(vec)>=1 and isinstance(vec[0],float):
@@ -534,8 +904,19 @@ class model:
             return float("nan")
         
     def __fixMatrix(self,mat):
-        #checks and converts the input
-        #matrix to a numpy matrix
+        """
+        Checks and converts the input matrix to a numpy matrix.
+
+        Parameters
+        ----------
+        mat : list
+            Input matrix.
+
+        Returns
+        -------
+        list
+            Converted numpy matrix or NaN if infeasible.
+        """
         if isinstance(mat,np.ndarray) and mat.ndim==2:
             return np.matrix(mat)
         elif isinstance(mat,list) and len(mat)>=1 and not isinstance(mat[0],int) and not isinstance(mat[0],float) and len(mat[0])>=1:
@@ -547,7 +928,19 @@ class model:
             return float("nan")
     
     def __fixScalar(self,n):
-        #checks the input scalar
+        """
+        Checks the input scalar and ensures it is a positive integer.
+
+        Parameters
+        ----------
+        n : list
+            Input scalar.
+
+        Returns
+        -------
+        int
+            Validated scalar or NaN if infeasible.
+        """
         if isinstance(n,float):
             n = int(n)
             print("Warning: Possibly lossy conversion from 'float' to 'int'.")
@@ -560,9 +953,21 @@ class model:
         return n
 
     def feasibleParameters(self,dist,gen):
-        #checks the feasibility of the
-        #initial distribution and generator
-        #matrix
+        """
+        Checks the feasibility of the initial distribution and generator matrix.
+
+        Parameters
+        ----------
+        dist : list
+            Initial distribution.
+        gen : list
+            Generator matrix.
+
+        Returns
+        -------
+        bool
+            True if parameters are feasible, False otherwise.
+        """
         if np.any(np.isnan(dist)) or np.any(np.isnan(gen)):
             return False
         if gen.shape[0]!=gen.shape[1]:
