@@ -8,7 +8,7 @@ class LocalStateSpace:
     in a Quasi-Birth-Death (QBD) process.
     """
 
-    def __init__(self,queue):
+    def __init__(self, queue):
         """
         Initialize the LocalStateSpace object.
 
@@ -20,8 +20,7 @@ class LocalStateSpace:
         """
         self.queue = queue
 
-
-    def generateStateSpace(self,l):
+    def generateStateSpace(self, l):
         """
         Generate the full local state space at level l.
 
@@ -38,19 +37,18 @@ class LocalStateSpace:
             The resulting state space is stored in self.stateSpace.
         """
 
-        #the local state space
+        # the local state space
         self.stateSpace = []
-        #service level state space
+        # service level state space
         s = self.serviceStateSpace(l)
 
-        #combine arrival state with service level
-        #state space
+        # combine arrival state with service level
+        # state space
         for i in range(self.queue.nPhasesArrival()):
             for j in range(self.serviceSpaceSize(l)):
-                self.stateSpace.append([s[j,],i])
+                self.stateSpace.append([s[j,], i])
 
-
-    def serviceSpaceSize(self,l):
+    def serviceSpaceSize(self, l):
         """
         Calculate the size of the state space accounting for the servers only.
 
@@ -65,16 +63,22 @@ class LocalStateSpace:
             Number of possible service configurations.
         """
 
-        if l>=self.queue.servers:
-            z = comb(self.queue.servers + self.queue.nPhasesService()-1,
-             self.queue.nPhasesService()-1, exact=True)
+        if l >= self.queue.servers:
+            z = comb(
+                self.queue.servers + self.queue.nPhasesService() - 1,
+                self.queue.nPhasesService() - 1,
+                exact=True,
+            )
         else:
-            z = comb(l + self.queue.nPhasesService()-1,
-             self.queue.nPhasesService()-1, exact=True)
+            z = comb(
+                l + self.queue.nPhasesService() - 1,
+                self.queue.nPhasesService() - 1,
+                exact=True,
+            )
 
-        return(z)
+        return z
 
-    def serviceStateSpace(self,l):
+    def serviceStateSpace(self, l):
         """
         Generate the state space accounting for servers only.
 
@@ -88,35 +92,34 @@ class LocalStateSpace:
         numpy.ndarray
             Matrix where each row corresponds to a service configuration.
         """
-        
-        if l>=self.queue.servers:
-            x=self.queue.servers
+
+        if l >= self.queue.servers:
+            x = self.queue.servers
         else:
-            x=l
+            x = l
 
         size = self.serviceSpaceSize(l)
-        d = (size,self.queue.nPhasesService())
+        d = (size, self.queue.nPhasesService())
         s = np.zeros(d)
-        s[0,0] = x
-        if size>1:
-            smAll=0
-            for i in range(1,size):
-                s[i,] = s[i-1,]
-                sw=1
-                for j in reversed(range(1,self.queue.nPhasesService())):
-                    if sw==1 and smAll<x:
-                        s[i,j] = s[i-1,j]+1
-                        smAll+=1
-                        sw=0
-                    elif sw==1:
-                        smAll-=s[i-1,j]
-                        s[i,j]=0
-                        sw=1
-                s[i,0] = x-smAll
-        return(s)
+        s[0, 0] = x
+        if size > 1:
+            smAll = 0
+            for i in range(1, size):
+                s[i,] = s[i - 1,]
+                sw = 1
+                for j in reversed(range(1, self.queue.nPhasesService())):
+                    if sw == 1 and smAll < x:
+                        s[i, j] = s[i - 1, j] + 1
+                        smAll += 1
+                        sw = 0
+                    elif sw == 1:
+                        smAll -= s[i - 1, j]
+                        s[i, j] = 0
+                        sw = 1
+                s[i, 0] = x - smAll
+        return s
 
-
-    def serviceJumpOne(self,s1,s2):
+    def serviceJumpOne(self, s1, s2):
         """
         Returns start and end phases of the jumping server.
         Returns [-1,-1] if jump is infeasible.
@@ -136,31 +139,31 @@ class LocalStateSpace:
             [-1, -1] otherwise.
         """
 
-        if s1[1]-s2[1]==0:
-            diff = s2[0]-s1[0]
-            nn=0
-            nneg=0
-            npos=0
+        if s1[1] - s2[1] == 0:
+            diff = s2[0] - s1[0]
+            nn = 0
+            nneg = 0
+            npos = 0
             nneg_idx = -1
             npos_idx = -1
             for i in range(len(diff)):
-                if diff[i]==0:
-                    nn+=1
-                elif diff[i]==-1:
-                    nneg+=1
+                if diff[i] == 0:
+                    nn += 1
+                elif diff[i] == -1:
+                    nneg += 1
                     nneg_idx = i
-                elif diff[i]==1:
-                    npos+=1
+                elif diff[i] == 1:
+                    npos += 1
                     npos_idx = i
 
-            if npos==1 and nneg==1 and (nn+npos+nneg)==len(diff):
-                return([nneg_idx,npos_idx])
+            if npos == 1 and nneg == 1 and (nn + npos + nneg) == len(diff):
+                return [nneg_idx, npos_idx]
             else:
-                return([-1,-1])
+                return [-1, -1]
         else:
-            return([-1,-1])
+            return [-1, -1]
 
-    def serviceIncreaseOne(self,s1,s2):
+    def serviceIncreaseOne(self, s1, s2):
         """
         Returns phase of the newly occupied server.
         Returns -1 if jump is infeasible.
@@ -180,23 +183,23 @@ class LocalStateSpace:
             or -1 if infeasible.
         """
 
-        diff = s2[0]-s1[0]
-        nn=0
-        npos=0
+        diff = s2[0] - s1[0]
+        nn = 0
+        npos = 0
         npos_idx = -1
         for i in range(len(diff)):
-            if diff[i]==0:
-                nn+=1
-            elif diff[i]==1:
-                npos+=1
+            if diff[i] == 0:
+                nn += 1
+            elif diff[i] == 1:
+                npos += 1
                 npos_idx = i
 
-        if npos==1 and (nn+npos)==len(diff):
-            return(npos_idx)
+        if npos == 1 and (nn + npos) == len(diff):
+            return npos_idx
         else:
-            return(-1)
-        
-    def serviceReduceOne(self,s1,s2):
+            return -1
+
+    def serviceReduceOne(self, s1, s2):
         """
         Returns phase of the newly idle server.
         Returns -1 if jump is infeasible.
@@ -216,27 +219,26 @@ class LocalStateSpace:
             or -1 if infeasible.
         """
 
-        if s1[1]-s2[1]==0:
-            diff = s2[0]-s1[0]
-            nn=0
-            nneg=0
+        if s1[1] - s2[1] == 0:
+            diff = s2[0] - s1[0]
+            nn = 0
+            nneg = 0
             nneg_idx = -1
             for i in range(len(diff)):
-                if diff[i]==0:
-                    nn+=1
-                elif diff[i]==-1:
-                    nneg+=1
+                if diff[i] == 0:
+                    nn += 1
+                elif diff[i] == -1:
+                    nneg += 1
                     nneg_idx = i
 
-            if nneg==1 and (nn+nneg)==len(diff):
-                return(nneg_idx)
+            if nneg == 1 and (nn + nneg) == len(diff):
+                return nneg_idx
             else:
-                return(-1)
+                return -1
         else:
-            return(-1)
+            return -1
 
-
-    def arrivalJumpOne(self,s1,s2):
+    def arrivalJumpOne(self, s1, s2):
         """
         Returns the start and end phase of the jumping arrival.
         Returns [-1,-1] if jump is infeasible.
@@ -256,20 +258,20 @@ class LocalStateSpace:
             [-1, -1] otherwise.
         """
 
-        diff = s2[0]-s1[0]
+        diff = s2[0] - s1[0]
         nn = 0
         for i in range(len(diff)):
-            if diff[i]==0:
-                nn+=1
-        if nn==len(diff):
-            return([s1[1],s2[1]])
+            if diff[i] == 0:
+                nn += 1
+        if nn == len(diff):
+            return [s1[1], s2[1]]
         else:
-            return([-1,-1])
+            return [-1, -1]
 
-    def noChange(self,s1,s2):
+    def noChange(self, s1, s2):
         """
         Returns true if neither the servers nor the arrival change phase.
-        
+
         Parameters
         ----------
         s1 : list
@@ -283,13 +285,13 @@ class LocalStateSpace:
             True if neither service nor arrival phases change,
             False otherwise.
         """
-        
-        diff = s2[0]-s1[0]
+
+        diff = s2[0] - s1[0]
         nn = 0
         for i in range(len(diff)):
-            if diff[i]==0:
-                nn+=1
-        if nn==len(diff) and (s1[1]-s2[1])==0:
-            return(True)
+            if diff[i] == 0:
+                nn += 1
+        if nn == len(diff) and (s1[1] - s2[1]) == 0:
+            return True
         else:
-            return(False)
+            return False

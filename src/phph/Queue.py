@@ -1,14 +1,20 @@
 import math
 import numpy as np
 
+
 class Queue:
     """
     The fundamental characteristics of the queue.
     """
 
-    def __init__(self,arrivalInitDistribution,arrivalGenerator,
-    serviceInitDistribution,serviceGenerator,
-    servers):
+    def __init__(
+        self,
+        arrivalInitDistribution,
+        arrivalGenerator,
+        serviceInitDistribution,
+        serviceGenerator,
+        servers,
+    ):
         """
         Initialize the queue with arrival and service process parameters.
 
@@ -31,20 +37,19 @@ class Queue:
             Initializes the Queue object.
         """
 
-        #Parameters for the arrival process
+        # Parameters for the arrival process
         self.arrivalInitDistribution = arrivalInitDistribution
         self.arrivalGenerator = arrivalGenerator
-        self.arrivalExitRates = -np.sum(arrivalGenerator,axis=1)
-        #Parameters for the service process
+        self.arrivalExitRates = -np.sum(arrivalGenerator, axis=1)
+        # Parameters for the service process
         self.serviceInitDistribution = serviceInitDistribution
         self.serviceGenerator = serviceGenerator
-        self.serviceExitRates = -np.sum(serviceGenerator,axis=1)
-        #number of servers
+        self.serviceExitRates = -np.sum(serviceGenerator, axis=1)
+        # number of servers
         self.servers = servers
-        #check parameters
-        self.feasible=True
+        # check parameters
+        self.feasible = True
         self.checkParameters()
-        
 
     def checkParameters(self):
         """
@@ -59,12 +64,17 @@ class Queue:
         None
             Updates the feasibility flag and prints an error if infeasible.
         """
-        arrivalRate = 1/self.meanInterArrivalTime()
-        serviceRate = 1/self.meanInterServiceTime()
-        if arrivalRate>=serviceRate*self.servers:
-            self.feasible=False
-            print("Error: The model is infeasible since arrivalRate > serviceRate x servers")
-            print("arrivalRate / (serviceRate x servers) =",arrivalRate/(serviceRate*self.servers))        
+        arrivalRate = 1 / self.meanInterArrivalTime()
+        serviceRate = 1 / self.meanInterServiceTime()
+        if arrivalRate >= serviceRate * self.servers:
+            self.feasible = False
+            print(
+                "Error: The model is infeasible since arrivalRate > serviceRate x servers"
+            )
+            print(
+                "arrivalRate / (serviceRate x servers) =",
+                arrivalRate / (serviceRate * self.servers),
+            )
 
     def nPhasesArrival(self):
         """
@@ -79,7 +89,7 @@ class Queue:
         int
             Number of arrival phases.
         """
-        return(self.arrivalGenerator.shape[0])
+        return self.arrivalGenerator.shape[0]
 
     def nPhasesService(self):
         """
@@ -94,7 +104,7 @@ class Queue:
         int
             Number of service phases.
         """
-        return(self.serviceGenerator.shape[0])
+        return self.serviceGenerator.shape[0]
 
     def meanInterArrivalTime(self):
         """
@@ -109,8 +119,10 @@ class Queue:
         float
             Mean inter-arrival time.
         """
-        y = -np.matmul(self.arrivalInitDistribution,np.linalg.inv(self.arrivalGenerator)).sum()
-        return(y)
+        y = -np.matmul(
+            self.arrivalInitDistribution, np.linalg.inv(self.arrivalGenerator)
+        ).sum()
+        return y
 
     def varianceInterArrivalTime(self):
         """
@@ -125,8 +137,18 @@ class Queue:
         float
             Variance of inter-arrival time.
         """
-        y = 2*(np.matmul(self.arrivalInitDistribution,np.linalg.matrix_power(self.arrivalGenerator,-2)).sum()) - math.pow(np.matmul(self.arrivalInitDistribution,np.linalg.inv(self.arrivalGenerator)).sum(),2)
-        return(y)
+        y = 2 * (
+            np.matmul(
+                self.arrivalInitDistribution,
+                np.linalg.matrix_power(self.arrivalGenerator, -2),
+            ).sum()
+        ) - math.pow(
+            np.matmul(
+                self.arrivalInitDistribution, np.linalg.inv(self.arrivalGenerator)
+            ).sum(),
+            2,
+        )
+        return y
 
     def meanInterServiceTime(self):
         """
@@ -141,8 +163,10 @@ class Queue:
         float
             Mean inter-service time.
         """
-        y = -np.matmul(self.serviceInitDistribution,np.linalg.inv(self.serviceGenerator)).sum()
-        return(y)
+        y = -np.matmul(
+            self.serviceInitDistribution, np.linalg.inv(self.serviceGenerator)
+        ).sum()
+        return y
 
     def varianceInterServiceTime(self):
         """
@@ -157,5 +181,15 @@ class Queue:
         float
             Variance of inter-service time.
         """
-        y = 2*(np.matmul(self.serviceInitDistribution,np.linalg.matrix_power(self.serviceGenerator,-2)).sum()) - math.pow(np.matmul(self.serviceInitDistribution,np.linalg.inv(self.serviceGenerator)).sum(),2)
-        return(y)
+        y = 2 * (
+            np.matmul(
+                self.serviceInitDistribution,
+                np.linalg.matrix_power(self.serviceGenerator, -2),
+            ).sum()
+        ) - math.pow(
+            np.matmul(
+                self.serviceInitDistribution, np.linalg.inv(self.serviceGenerator)
+            ).sum(),
+            2,
+        )
+        return y
