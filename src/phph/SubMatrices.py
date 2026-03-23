@@ -2,18 +2,46 @@ import numpy as np
 from phph.LocalStateSpace import LocalStateSpace
 
 class SubMatrices:
-    #derive sub-matrices related to the inhomogenuous and homogenuous
-    #parts of the state space
+    """
+    Derive sub-matrices related to the inhomogeneous and homogeneous
+    parts of the state space.
+    """
 
     def __init__(self,queue):
+        """
+        Initialize the SubMatrices object.
+
+        Parameters
+        ----------
+        queue : list
+            Queue object containing system parameters.
+
+        Returns
+        -------
+        None
+            Initializes the SubMatrices object.
+        """
         self.queue = queue
 
 
     def createNeutsMatrix(self,eps,method="logred"):
-        #Derive Neut's R matrix (in continuous time) 
+        """
+        Derives Neuts' R matrix (in continuous time).
+        Assumes the backward, local, and forward matrices
+        have been derived.
         
-        #assumes the backward, local, and forward
-        #matrices have been derived
+        Parameters
+        ----------
+        eps : list
+            Convergence tolerance.
+        method : list
+            Method used ("logred" or "stewart").
+
+        Returns
+        -------
+        None
+            Stores the computed Neuts matrix.
+        """
         
         if method=="logred":
             self.logRed(eps)
@@ -22,9 +50,21 @@ class SubMatrices:
         
         
     def logRed(self,eps):
-        #derive Neut's matrix using
-        #logarithmic reduction (original implementation in Matlab by B. F. Nielsen)
+        """
+        Derives Neuts' matrix using logarithmic reduction
+        (original implementation in Matlab by B. F. Nielsen).
 
+        Parameters
+        ----------
+        eps : list
+            Convergence tolerance.
+
+        Returns
+        -------
+        None
+            Stores the computed Neuts matrix.
+        """
+        
         #initialization
         l = self.forwardMat.shape[0]
         Iden = np.identity(l)
@@ -51,9 +91,22 @@ class SubMatrices:
         self.neutsMat = np.matmul(self.forwardMat,np.linalg.inv(-Umat))
     
     def stewart(self,eps):
-        #derive Neut's matrix using the method in:
-        #W. J. Stewart (2009), "Probability, Markov Chains, Queues, and Simulation", Princeton University Press
-        
+        """
+        Derives Neuts' matrix using the method in:
+        W. J. Stewart (2009), "Probability, Markov Chains, Queues,
+        and Simulation", Princeton University Press
+  
+        Parameters
+        ----------
+        eps : list
+            Convergence tolerance.
+
+        Returns
+        -------
+        None
+            Stores the computed Neuts matrix.
+        """
+      
         V = np.matmul(self.forwardMat,np.linalg.inv(self.localMat))
         W = np.matmul(self.backwardMat,np.linalg.inv(self.localMat))
 
@@ -67,9 +120,19 @@ class SubMatrices:
         self.neutsMat = np.copy(Rbis)
         
     def createFundamentalMatrices(self):
-        #create the fundamental sub-matrix
-        #associated with transitions in the 
-        #homogenuous part of the state space
+        """
+        Create the fundamental sub-matrix associated with transitions in the 
+        homogeneous part of the state space.
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+            Initializes forward, backward, and local matrices.
+        """
         
         #create the local state space
         ls = LocalStateSpace(self.queue)
@@ -81,9 +144,20 @@ class SubMatrices:
         
 
     def createForwardMatrix(self,ls):
-        #create the sub-matrix associated with
-        #*forward* transitions in the homogenuous
-        #part of the state space
+        """
+        Create the sub-matrix associated with *forward* transitions in the homogenuous
+        part of the state space.
+
+        Parameters
+        ----------
+        ls : list
+            Local state space.
+
+        Returns
+        -------
+        None
+            Stores the forward transition matrix.
+        """
         
         l = len(ls.stateSpace)
         d = (l,l)
@@ -98,9 +172,20 @@ class SubMatrices:
 
 
     def createBackwardMatrix(self,ls):
-        #create the sub-matrix associated with
-        #*backward* transitions in the homogenuous
-        #part of the state space
+        """
+        Create the sub-matrix associated with *backward* transitions in the homogenuous
+        part of the state space.
+
+        Parameters
+        ----------
+        ls : list
+            Local state space.
+
+        Returns
+        -------
+        None
+            Stores the backward transition matrix.
+        """
         
         l = len(ls.stateSpace)
         d = (l,l)
@@ -120,9 +205,20 @@ class SubMatrices:
 
 
     def createLocalMatrix(self,ls):
-        #create the sub-matrix associated with
-        #*local* transitions in the homogenuous
-        #part of the state space
+        """
+        Create the sub-matrix associated with *local* transitions in the homogenuous
+        part of the state space.
+
+        Parameters
+        ----------
+        ls : list
+            Local state space.
+
+        Returns
+        -------
+        None
+            Stores the local transition matrix.
+        """
         
         l = len(ls.stateSpace)
         d = (l,l)
@@ -147,13 +243,22 @@ class SubMatrices:
 
 
     def createForwardInhomMatrix(self,i,j):
-        #create a sub-matrix associated with
-        #*forward* transitions from level i
-        #to level j in the inhomogenuous
-        #part of the state space
-        
-        #assumes i<j
+        """
+        Create a sub-matrix associated with *forward* transitions from level i
+        to level j in the inhomogenuous part of the state space. Assumes i<j.
 
+        Parameters
+        ----------
+        i : list
+            Source level.
+        j : list
+            Target level.
+
+        Returns
+        -------
+        list
+            Forward inhomogeneous transition matrix.
+        """
         ls_i = LocalStateSpace(self.queue)
         ls_j = LocalStateSpace(self.queue)
         ls_i.generateStateSpace(i)
@@ -172,12 +277,22 @@ class SubMatrices:
         return(mat)
 
     def createBackwardInhomMatrix(self,i,j):
-        #create a sub-matrix associated with
-        #*backward* transitions from level i
-        #to level j in the inhomogenuous
-        #part of the state space
-        
-        #assumes i>j
+        """
+        Create a sub-matrix associated with *backward* transitions from level i
+        to level j in the inhomogenuous part of the state space. Assumes i>j.
+
+        Parameters
+        ----------
+        i : list
+            Source level.
+        j : list
+            Target level.
+
+        Returns
+        -------
+        list
+            Backward inhomogeneous transition matrix.
+        """
 
         ls_i = LocalStateSpace(self.queue)
         ls_j = LocalStateSpace(self.queue)
@@ -199,12 +314,24 @@ class SubMatrices:
 
 
     def createLocalInhomMatrix(self,i,forwardInhomMat,backwardInhomMat):
-        #create a sub-matrix associated with
-        #*local* transitions in level i
-        #in the inhomogenuous part of the
-        #state space
-        
-        #assumes i>0
+        """
+        Create a sub-matrix associated with *local* transitions in level i
+        in the inhomogenuous part of the state space. Assumes i>0.
+
+        Parameters
+        ----------
+        i : list
+            Level index.
+        forwardInhomMat : list
+            Forward inhomogeneous matrix.
+        backwardInhomMat : list
+            Backward inhomogeneous matrix.
+
+        Returns
+        -------
+        list
+            Local inhomogeneous transition matrix.
+        """
 
         ls_i = LocalStateSpace(self.queue)
         ls_i.generateStateSpace(i)
@@ -233,14 +360,19 @@ class SubMatrices:
 
 
     def createCornerMatrix(self):
-        #create the sub-matrix in the
-        #lower right corner of the inhomogenuous part
-        #of the major transition rate matrix.
-        #the corner matrix corresponds to the sub-matrix
-        #at the levels that is equal to the number of 
-        #servers.
+        """
+        Creates the sub-matrix in the lower right corner of the inhomogenuous part
+        of the major transition rate matrix. The corner matrix corresponds to the
+        sub-matrix at the levels that is equal to the number of servers. Assumes the local,
+        backward, and Neut's matrices have been derived.
+        
+        Parameters
+        ----------
+        None
 
-        #assumes the local, backward, and Neut's
-        #matrices have been derived.   
-
+        Returns
+        -------
+        list
+            Corner matrix.
+        """
         return(np.add(self.localMat,np.matmul(self.neutsMat,self.backwardMat)))
